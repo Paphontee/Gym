@@ -94,7 +94,8 @@ python3 -m http.server 8000
 | `DEFAULT_PROGRAM` | โปรแกรมเริ่มต้น |
 | `lsLoad`, `lsSave`, `save`, `mergeIn` | อ่าน เขียน และรวมข้อมูลในเครื่อง |
 | `Drive` | ซิงก์กับ Google Drive |
-| `suggest`, `overload`, `goalInfo` | คำแนะนำเพิ่มน้ำหนัก เช็ก progressive overload และเป้าหมาย |
+| `suggest`, `overload`, `goalInfo` | คำแนะนำเพิ่มน้ำหนัก (ใช้ RIR ของครั้งก่อนด้วย) เช็ก progressive overload และเป้าหมาย |
+| `rirHTML` | ถาม RIR (เหลือแรงอีกกี่ครั้ง) หลังจบเซ็ต เก็บใน `set.rir` และส่งออกใน CSV |
 | `calcCompute` | เครื่องคิดสารอาหาร (BMR, TDEE, สัดส่วน) |
 | `plateCalc`, `renderPlate` | เครื่องคิดแผ่นน้ำหนัก (ปุ่ม "แผ่น" ในแท็บวันนี้ ตั้งค่าบาร์และแผ่นที่มีในหน้าตั้งค่า) |
 | `renderHist`, `openSheet` | ประวัติท่าต่อท่า (แตะชื่อท่า) และแผง bottom sheet ที่ใช้ร่วมกัน |
