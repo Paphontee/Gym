@@ -59,7 +59,7 @@ const fmtRest=s=>{s=+s||0;if(s<120&&s%60!==0||s<60)return `${s} วินาท�
 function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2000)}
 
 /* ---------- state ---------- */
-const S={profile:{},sessions:{},food:{},view:'today',dayPick:null,foodDate:null,weekOff:0,draft:null,fallback:null};
+const S={profile:{},sessions:{},food:{},view:'today',dayPick:null,foodDate:null,weekOff:0,draft:null,fallback:null,sheet:null};
 const prog=()=>S.profile.program||DEFAULT_PROGRAM;
 const days=()=>prog().days;
 const dayOf=id=>days().find(d=>d.id===id)||null;
@@ -286,8 +286,8 @@ function renderToday(){
     const base=sess&&sess.sets[ex.id]?sess.sets[ex.id]:[];
     const arr=base.slice();while(arr.length<ex.sets)arr.push({w:null,r:null,done:false});
     h+=`<article class="ex"><div class="ex-head"><span class="ex-num" aria-hidden="true">${i+1}</span><div>
-      <h3 class="ex-name">${esc(ex.n)} ${ex.alt?`<small>${esc(ex.alt)}</small>`:''}</h3>
-      <p class="ex-target">${ex.sets} × ${ex.lo===ex.hi?ex.lo:ex.lo+'–'+ex.hi}${sec?' วินาที':''}, พัก ${fmtRest(ex.rest)}</p>
+      <h3 class="ex-name"><button type="button" class="nm-btn" data-act="hist" data-ex="${esc(ex.id)}" aria-label="ดูประวัติ ${esc(ex.n)}">${esc(ex.n)}<span class="chev" aria-hidden="true">›</span></button> ${ex.alt?`<small>${esc(ex.alt)}</small>`:''}</h3>
+      <p class="ex-target">${ex.sets} × ${ex.lo===ex.hi?ex.lo:ex.lo+'–'+ex.hi}${sec?' วินาที':''}, พัก ${fmtRest(ex.rest)}${ex.unit==='kg'?`<button type="button" class="mini" data-act="plate" data-ex="${esc(ex.id)}" aria-label="คิดแผ่นน้ำหนัก ${esc(ex.n)}">แผ่น</button>`:''}</p>
       <p class="hint ${sg.up?'up':''}">${esc(sg.text)}</p></div></div><div class="sets">`;
     arr.forEach((s,j)=>{
       h+=`<div class="set ${s.done?'done':''} ${sec?'sec':''}"><span class="sn">${j+1}</span>
@@ -367,7 +367,7 @@ function renderProgress(){
     ${res.map(({ex,o})=>{const hs=o.h.slice(-12);
       return `<details class="ov"><summary><span class="nm">${esc(ex.n)}</span><span class="pill ${o.cls}">${o.label}</span><span class="sm">${esc(ex.dayName)}${o.h.length?`, ล่าสุด ${fmtTop(ex,topOf(ex,o.h[o.h.length-1].sets))}`:''}</span></summary>
       <div class="body"><p style="margin:0 0 4px;font-size:14px">${esc(o.text)}</p>${sparkSVG(hs.map(x=>sparkVal(ex,x.sets)),colorOf(ex.day))}
-      ${hs.length?`<ul class="prog">${hs.slice(-5).reverse().map(x=>`<li><span class="muted">${thDate(fromKey(x.key))}</span><span>${fmtTop(ex,topOf(ex,x.sets))}</span></li>`).join('')}</ul>`:''}</div></details>`}).join('')}
+      ${hs.length?`<ul class="prog">${hs.slice(-5).reverse().map(x=>`<li><span class="muted">${thDate(fromKey(x.key))}</span><span>${fmtTop(ex,topOf(ex,x.sets))}</span></li>`).join('')}</ul><button type="button" class="link" data-act="hist" data-ex="${esc(ex.id)}">ดูประวัติทั้งหมด</button>`:''}</div></details>`}).join('')}
   </section>`;
   return h;
 }
@@ -429,6 +429,10 @@ function renderSettings(){
     <div class="form3" style="margin:0 0 12px"><label><span class="cap">คาร์บต่อวัน</span><span class="f"><input id="sc" type="number" inputmode="numeric" min="0" value="${S.profile.carb??''}" placeholder="–"><span>g</span></span></label>
     <label><span class="cap">ไขมันต่อวัน</span><span class="f"><input id="sf" type="number" inputmode="numeric" min="0" value="${S.profile.fat??''}" placeholder="–"><span>g</span></span></label></div>
     <div class="row"><button type="button" class="btn" data-act="ssave">บันทึกเป้าหมาย</button><button type="button" class="btn ghost" data-act="calc">คำนวณให้อัตโนมัติ</button></div></section>
+  <section class="panel"><h2>แผ่นน้ำหนัก</h2><p class="muted" style="font-size:14px">ใช้กับปุ่ม "แผ่น" ในแท็บวันนี้ แอปจะบอกว่าต้องใส่แผ่นอะไรข้างละกี่แผ่น</p>
+    <label class="field"><span>น้ำหนักบาร์เปล่าที่ใช้ประจำ</span><span class="f"><input id="sbar" type="number" inputmode="decimal" step="0.5" min="0" value="${barKg()}"><span>kg</span></span></label>
+    <span class="muted" style="display:block;font-size:14px;margin:0 0 4px">แผ่นที่ยิมมี (แตะเพื่อเปิด/ปิด)</span>
+    <div class="chips" style="margin:0">${PLATE_ALL.map(p=>`<button type="button" class="chip" data-act="pltog" data-p="${p}" aria-pressed="${platesAvail().includes(p)}">${fmtP(p)} kg</button>`).join('')}</div></section>
   <section class="panel"><h2>ที่เก็บข้อมูล</h2>
     <p style="font-size:15px;margin:0 0 6px">ข้อมูลอยู่ในเครื่องนี้ ไม่ได้ส่งไปเซิร์ฟเวอร์ของใคร ถ้าอยากให้อยู่นอกเครื่องด้วย ให้เชื่อม Google Drive ของคุณ หรือดาวน์โหลดไฟล์สำรองไปเก็บเอง</p>
     <h3 style="font-size:16px;margin:14px 0 6px">Google Drive</h3>
@@ -569,6 +573,72 @@ function render(){
   renderStatus();
 }
 
+/* ---------- bottom sheet ---------- */
+function openSheet(html){$('#sheetBody').innerHTML=html;$('#sheet').hidden=false;document.body.classList.add('noscroll');$('#sheet .sheet-box').scrollTop=0}
+function closeSheet(){const s=$('#sheet');if(!s||s.hidden)return;s.hidden=true;S.sheet=null;document.body.classList.remove('noscroll')}
+
+/* ---------- exercise history ---------- */
+function renderHist(exId){
+  const EXM=exMap(),ex=EXM[exId];if(!ex)return '';
+  const h=histOf(exId),kg=ex.unit==='kg';
+  let best=null,bestKey=null,bestScore=0;const prs=new Set();
+  h.forEach(x=>{const sc=scoreOf(ex,x.sets);if(sc>bestScore){bestScore=sc;best=topOf(ex,x.sets);bestKey=x.key;prs.add(x.key)}});
+  const fmtSet=s=>ex.unit==='sec'?`${s.r||0} วิ`:ex.unit==='bw'?((s.w||0)>0?`+${fmt(s.w)}×${s.r||0}`:`${s.r||0}`):`${fmt(s.w)}×${s.r||0}`;
+  const rows=h.slice(-10).reverse().map(x=>{const t=topOf(ex,x.sets);
+    return `<li><div class="hd"><span>${thDateY(fromKey(x.key))}</span>${prs.has(x.key)?'<span class="pill up">สถิติใหม่</span>':''}</div>
+      <div class="hs">${x.sets.map(fmtSet).join(', ')}${ex.unit==='bw'?' ครั้ง':''}</div>
+      <div class="ht muted">ดีที่สุด ${fmtTop(ex,t)}${kg?` · 1RM ≈ ${fmt(e1rm(t))} kg`:''}</div></li>`}).join('');
+  const head=`<div class="sh-head"><h2>${esc(ex.n)}${ex.archived?' <small class="muted">(ไม่อยู่ในโปรแกรมแล้ว)</small>':''}</h2><button type="button" class="x" data-act="sheetclose" aria-label="ปิด">×</button></div>`;
+  if(!h.length)return head+'<p class="muted">ยังไม่มีบันทึกของท่านี้ กด ✓ จบเซ็ตในแท็บวันนี้ แล้วกลับมาดูได้</p>';
+  return head+`<div class="stats"><div class="stat"><b>${h.length}</b><span>ครั้งที่บันทึก</span></div>
+    <div class="stat"><b>${kg?fmt(e1rm(best)):fmtTop(ex,best)}</b><span>${kg?'1RM สูงสุด (kg)':'ดีที่สุด'}</span></div>
+    <div class="stat"><b style="font-size:18px">${bestKey?thDate(fromKey(bestKey)):'–'}</b><span>วันทำสถิติ</span></div></div>
+    ${sparkSVG(h.slice(-20).map(x=>sparkVal(ex,x.sets)),'--day')}
+    <ul class="hist">${rows}</ul>${h.length>10?`<p class="muted" style="font-size:13px;margin:8px 0 0">แสดง 10 ครั้งล่าสุดจากทั้งหมด ${h.length} ครั้ง</p>`:''}`;
+}
+
+/* ---------- plate calculator ---------- */
+const PLATE_ALL=[25,20,15,10,5,2.5,1.25,0.5];
+const fmtP=p=>(+p).toLocaleString('th-TH',{maximumFractionDigits:2});
+const PLATE_STYLE={25:['#D8322B','#fff'],20:['#2E63C9','#fff'],15:['#E5B21E','#2a2a2a'],10:['#2E9A5B','#fff'],5:['#F2F2F2','#2a2a2a'],2.5:['#6E6E6E','#fff'],1.25:['#BDBDBD','#2a2a2a'],0.5:['#DADADA','#2a2a2a']};
+const PLATE_H={25:120,20:110,15:96,10:82,5:66,2.5:52,1.25:44,0.5:38};
+const BARS=[20,15,10,7.5];
+const barKg=()=>num(S.profile.barKg)??20;
+const platesAvail=()=>{const p=Array.isArray(S.profile.plates)&&S.profile.plates.length?S.profile.plates:[25,20,15,10,5,2.5,1.25];return p.slice().sort((x,y)=>y-x)};
+function plateCalc(target,bar,avail){
+  if(!(target>0))return null;
+  const q=v=>Math.round(v*4)/4;
+  if(target<bar-1e-9)return {below:true,bar,target};
+  let rem=q((target-bar)/2);const side=rem,list=[];
+  for(const p of avail){while(rem>=p-1e-9){list.push(p);rem=q(rem-p)}}
+  return {below:false,bar,target,side,list,got:bar+(side-rem)*2,missing:Math.round(rem*2*100)/100};
+}
+function plateTarget(ex){
+  const sess=S.sessions[todayKey()],arr=(sess&&sess.sets[ex.id])||[];
+  const open=arr.find(s=>!s.done&&s.w>0);if(open)return open.w;
+  const sg=suggest(ex);if(sg.w)return sg.w;
+  const any=arr.find(s=>s.w>0);return any?any.w:null;
+}
+function plateResult(st){
+  const r=plateCalc(st.w,st.bar,platesAvail());
+  if(!r)return '<p class="muted" style="margin:10px 0 0">ใส่น้ำหนักรวมที่ต้องการยก</p>';
+  if(r.below)return `<p class="muted" style="margin:10px 0 0">น้ำหนักน้อยกว่าบาร์เปล่า (${fmtP(r.bar)} kg) ใช้บาร์ที่เบากว่าหรือดัมเบลแทน</p>`;
+  const vis=r.list.slice().reverse().map(p=>{const [c,t]=PLATE_STYLE[p]||['#999','#fff'];return `<i class="pl" style="--c:${c};--t:${t};--h:${PLATE_H[p]||50}px">${fmtP(p)}</i>`}).join('');
+  return `<div class="bar-vis" role="img" aria-label="แผ่นข้างละ ${r.list.map(fmtP).join(', ')}"><span class="tip"></span>${vis}<span class="collar"></span><span class="rod"></span></div>
+    <p class="pl-txt">${r.list.length?`ข้างละ <b>${r.list.map(fmtP).join(' + ')}</b> kg (${r.list.length} แผ่น)`:'บาร์เปล่า ไม่ต้องใส่แผ่น'}</p>
+    ${r.missing>0?`<p class="hint" style="margin-top:6px">ใส่ได้ใกล้สุด <b>${fmtP(r.got)} kg</b> ขาดอีก ${fmtP(r.missing)} kg เพราะไม่มีแผ่นเล็กพอ</p>`:''}`;
+}
+function renderPlate(){
+  const st=S.sheet,bars=BARS.includes(st.bar)?BARS:BARS.concat([st.bar]);
+  return `<div class="sh-head"><h2>แผ่นน้ำหนัก${st.exName?`<br><small class="muted" style="font-weight:400;font-size:14px">${esc(st.exName)}</small>`:''}</h2><button type="button" class="x" data-act="sheetclose" aria-label="ปิด">×</button></div>
+    <div class="pl-row"><button type="button" class="btn ghost" data-act="plw" data-d="-2.5" aria-label="ลด 2.5 กิโลกรัม">−2.5</button>
+      <label class="f big"><input id="plw" type="number" inputmode="decimal" step="0.5" min="0" value="${st.w??''}" placeholder="เช่น 60" aria-label="น้ำหนักรวม"><span>kg รวม</span></label>
+      <button type="button" class="btn ghost" data-act="plw" data-d="2.5" aria-label="เพิ่ม 2.5 กิโลกรัม">+2.5</button></div>
+    <div class="chips" style="margin:10px 0 0"><span class="muted" style="font-size:14px;align-self:center">บาร์</span>${bars.map(b=>`<button type="button" class="chip" data-act="plbar" data-b="${b}" aria-pressed="${st.bar===b}">${fmtP(b)} kg</button>`).join('')}</div>
+    <div id="plres">${plateResult(st)}</div>
+    <p class="muted" style="font-size:13px;margin:12px 0 0">แผ่นที่มี: ${platesAvail().map(fmtP).join(', ')} kg · เปลี่ยนได้ที่ ตั้งค่า > แผ่นน้ำหนัก</p>`;
+}
+
 /* ---------- backup ---------- */
 function backupObj(){return {app:'gymlog3',version:2,exportedAt:new Date().toISOString(),profile:S.profile,sessions:S.sessions,food:S.food}}
 function csvText(){
@@ -652,6 +722,8 @@ if('serviceWorker' in navigator){
 /* ---------- events ---------- */
 function onField(e){
   const t=e.target;
+  if(t.id==='plw'&&S.sheet&&S.sheet.type==='plate'){S.sheet.w=num(t.value);const el=$('#plres');if(el)el.innerHTML=plateResult(S.sheet);return}
+  if(t.id==='sbar'){S.profile.barKg=num(t.value);save('p','me');return}
   if(t.dataset.c&&S.view==='calc'){const c=calcState(),k=t.dataset.c;c[k]=(k==='act'||k==='fatPct'||k==='meals')?num(t.value):(t.value===''?null:num(t.value));const o=$('#calcOut');if(o)o.innerHTML=calcOut();return}
   if(t.dataset.ex&&S.view==='today'){const day=activeDay();if(!day)return;const sess=ensureSession(day),ex=day.ex.find(x=>x.id===t.dataset.ex);if(!ex)return;
     setsFor(sess,ex)[+t.dataset.i][t.dataset.k]=num(t.value);save('s',sess.date);return}
@@ -674,8 +746,14 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('click',async e=>{
   const nb=e.target.closest('nav.tabs button');
-  if(nb){if(S.view==='editor'&&!confirm('ออกจากหน้าแก้ไขโดยไม่บันทึกไหม'))return;S.draft=null;S.view=nb.dataset.view;if(S.view==='food')S.foodDate=null;render();window.scrollTo(0,0);return}
+  if(nb){if(S.view==='editor'&&!confirm('ออกจากหน้าแก้ไขโดยไม่บันทึกไหม'))return;closeSheet();S.draft=null;S.view=nb.dataset.view;if(S.view==='food')S.foodDate=null;render();window.scrollTo(0,0);return}
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='sheetclose'){closeSheet();return}
+  if(a==='hist'){S.sheet={type:'hist',ex:b.dataset.ex};openSheet(renderHist(b.dataset.ex));return}
+  if(a==='plate'){const ex=exMap()[b.dataset.ex];if(!ex)return;S.sheet={type:'plate',ex:ex.id,exName:ex.n,w:plateTarget(ex),bar:barKg()};openSheet(renderPlate());return}
+  if(a==='plw'){const st=S.sheet;if(!st||st.type!=='plate')return;st.w=r05(Math.max(0,(st.w??st.bar)+ +b.dataset.d));openSheet(renderPlate());return}
+  if(a==='plbar'){const st=S.sheet;if(!st||st.type!=='plate')return;st.bar=+b.dataset.b;openSheet(renderPlate());return}
+  if(a==='pltog'){const p=+b.dataset.p,cur=platesAvail(),nx=cur.includes(p)?cur.filter(x=>x!==p):cur.concat([p]);if(!nx.length){toast('ต้องมีแผ่นอย่างน้อย 1 ขนาด');return}S.profile.plates=nx.sort((x,y)=>y-x);save('p','me');render();return}
   if(a==='pick'){const d=b.dataset.day,s=S.sessions[todayKey()];if(s){s.day=d;save('s',s.date)}else S.dayPick=d;render();return}
   if(a==='tick'){
     const day=activeDay(),sess=ensureSession(day),ex=day.ex.find(x=>x.id===b.dataset.ex),arr=setsFor(sess,ex),s=arr[+b.dataset.i];
@@ -758,6 +836,7 @@ document.addEventListener('click',async e=>{
   }
 });
 
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 /* ---------- boot ---------- */
 lsLoad();
 {const v=new URLSearchParams(location.search).get('view');if(['today','food','progress','report','settings'].includes(v))S.view=v}

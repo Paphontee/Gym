@@ -96,6 +96,8 @@ python3 -m http.server 8000
 | `Drive` | ซิงก์กับ Google Drive |
 | `suggest`, `overload`, `goalInfo` | คำแนะนำเพิ่มน้ำหนัก เช็ก progressive overload และเป้าหมาย |
 | `calcCompute` | เครื่องคิดสารอาหาร (BMR, TDEE, สัดส่วน) |
+| `plateCalc`, `renderPlate` | เครื่องคิดแผ่นน้ำหนัก (ปุ่ม "แผ่น" ในแท็บวันนี้ ตั้งค่าบาร์และแผ่นที่มีในหน้าตั้งค่า) |
+| `renderHist`, `openSheet` | ประวัติท่าต่อท่า (แตะชื่อท่า) และแผง bottom sheet ที่ใช้ร่วมกัน |
 | `renderToday`, `renderFood`, `renderProgress`, `renderReport`, `renderSettings`, `renderEditor`, `renderCalc` | หน้าจอแต่ละหน้า |
 | listener `click` ท้ายไฟล์ | จัดการทุกปุ่มผ่าน `data-act` |
 

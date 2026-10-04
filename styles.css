@@ -184,3 +184,35 @@ textarea.code{width:100%;min-height:120px;border:1px solid var(--line);backgroun
 .banner[hidden]{display:none}
 .banner .btn{flex:none;padding:8px 14px}
 .panel h3{font-weight:600}
+
+/* bottom sheet */
+.noscroll{overflow:hidden}
+.sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.sheet-box{position:relative;width:100%;max-width:560px;max-height:85vh;overflow:auto;background:var(--surface);border-radius:18px 18px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.25);animation:sheetup .2s ease-out}
+@keyframes sheetup{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.sheet-box::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+.sh-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:0 0 10px}
+.sh-head h2{margin:0;font-size:18px;font-weight:600;line-height:1.3}
+.sh-head .x{border:0;background:var(--soft);color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:20px;line-height:1;flex:none}
+/* exercise history */
+.nm-btn{all:unset;cursor:pointer;display:inline}
+.nm-btn .chev{color:var(--muted);margin-left:4px;font-weight:400}
+.nm-btn:focus-visible{outline:2px solid var(--day);outline-offset:2px;border-radius:4px}
+.mini{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:600;margin-left:6px;vertical-align:middle}
+.hist{list-style:none;margin:0;padding:0}
+.hist li{padding:10px 0;border-top:1px dashed var(--line)}
+.hist .hd{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.hist .hs{font-size:15px;margin:2px 0 0;word-break:break-word}
+.hist .ht{font-size:13px}
+/* plate calculator */
+.pl-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+.pl-row .btn.ghost{padding:11px 12px}
+.f.big input{font-size:22px}
+.pl-txt{margin:8px 0 0;font-size:16px}
+.bar-vis{display:flex;align-items:center;height:140px;padding:0 12px;background:var(--soft);border-radius:12px;margin:10px 0 0;overflow-x:auto}
+.bar-vis .tip{flex:none;width:28px;height:12px;background:#9AA0A6;border-radius:3px 0 0 3px}
+.bar-vis .pl{flex:none;width:24px;height:var(--h);margin-left:3px;background:var(--c);color:var(--t,#fff);border-radius:4px;display:grid;place-items:center;font-style:normal;font-size:9px;font-weight:700;box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.18)}
+.bar-vis .collar{flex:none;width:12px;height:26px;margin-left:4px;background:#6C7075;border-radius:3px}
+.bar-vis .rod{flex:1;min-width:30px;height:12px;background:#9AA0A6}
