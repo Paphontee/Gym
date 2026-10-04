@@ -96,6 +96,8 @@ python3 -m http.server 8000
 | `Drive` | ซิงก์กับ Google Drive |
 | `suggest`, `overload`, `goalInfo` | คำแนะนำเพิ่มน้ำหนัก (ใช้ RIR ของครั้งก่อนด้วย) เช็ก progressive overload และเป้าหมาย |
 | `rirHTML` | ถาม RIR (เหลือแรงอีกกี่ครั้ง) หลังจบเซ็ต เก็บใน `set.rir` และส่งออกใน CSV |
+| `MG_RULES`, `mgOf`, `mgVolumeHTML` | กล้ามเนื้อที่ใช้ต่อท่า (เดาจากชื่อ หรือระบุใน `ex.mg`) และปริมาณงานต่อกล้ามเนื้อต่อสัปดาห์ในหน้าสรุป |
+| `foldSet`, `foldSave` | พับ/กางการ์ดท่าในแท็บวันนี้ (เก็บใน localStorage รายวัน ไม่ซิงก์) |
 | `calcCompute` | เครื่องคิดสารอาหาร (BMR, TDEE, สัดส่วน) |
 | `plateCalc`, `renderPlate` | เครื่องคิดแผ่นน้ำหนัก (ปุ่ม "แผ่น" ในแท็บวันนี้ ตั้งค่าบาร์และแผ่นที่มีในหน้าตั้งค่า) |
 | `renderHist`, `openSheet` | ประวัติท่าต่อท่า (แตะชื่อท่า) และแผง bottom sheet ที่ใช้ร่วมกัน |

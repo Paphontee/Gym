@@ -26,7 +26,7 @@ const DEFAULT_PROGRAM = {days:[
     {id:'f6',n:'Overhead triceps extension',alt:'',sets:3,lo:10,hi:12,rest:60,inc:1,unit:'kg'},
     {id:'f7',n:'Face pull',alt:'',sets:2,lo:15,hi:15,rest:60,inc:2.5,unit:'kg'}]}
 ], archive:{}};
-const APP_VERSION='v9'; // keep in step with VERSION in sw.js
+const APP_VERSION='v10'; // keep in step with VERSION in sw.js
 const COLORS=['--accent','--teal','--green','--purple','--yellow','--red','--blue'];
 const TH_DAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TH_SHORT=['จ','อ','พ','พฤ','ศ','ส','อา'];
@@ -291,14 +291,20 @@ function renderToday(){
   let h=backupNudge()+chips;
   h+=`<p class="note">${day.light?'วันเบา: ทุกเซ็ตเหลือแรงไว้ 2–3 ครั้ง ถ้าคาบพละหนัก ทำแค่ 2 เซ็ตต่อท่าก็พอ':'เซ็ตสุดท้ายของแต่ละท่าให้เหลือแรงไว้ 1–2 ครั้ง กด ✓ เมื่อจบเซ็ตเพื่อเริ่มจับเวลาพัก'}</p>`;
   if(!day.ex.length) h+=`<section class="panel"><p class="muted">วันนี้ยังไม่มีท่า ไปที่ ตั้งค่า > แก้ไขโปรแกรม เพื่อเพิ่มท่า</p></section>`;
+  const folded=foldSet();
   day.ex.forEach((ex,i)=>{
-    const sg=suggest(ex),sec=ex.unit==='sec';
+    const sg=suggest(ex),sec=ex.unit==='sec',isF=folded.has(ex.id);
     const base=sess&&sess.sets[ex.id]?sess.sets[ex.id]:[];
     const arr=base.slice();while(arr.length<ex.sets)arr.push({w:null,r:null,done:false});
+    const foldBtn=`<button type="button" class="fold" data-act="fold" data-ex="${esc(ex.id)}" aria-expanded="${!isF}" aria-label="${isF?'แสดงรายละเอียด':'ซ่อนรายละเอียด'} ${esc(ex.n)}">${isF?'▸':'▾'}</button>`;
+    if(isF){const dn=arr.filter(x=>x.done).length,top=dn?topOf(ex,arr.filter(x=>x.done)):null;
+      h+=`<article class="ex folded"><div class="ex-head"><span class="ex-num" aria-hidden="true">${i+1}</span><div>
+        <h3 class="ex-name"><button type="button" class="nm-btn" data-act="hist" data-ex="${esc(ex.id)}" aria-label="ดูประวัติ ${esc(ex.n)}">${esc(ex.n)}<span class="chev" aria-hidden="true">›</span></button></h3>
+        <p class="ex-target">${dn===arr.length?'ครบทุกเซ็ต':`ทำแล้ว ${dn}/${arr.length} เซ็ต`}${top?` · ${fmtTop(ex,top)}`:''}</p></div>${foldBtn}</div></article>`;return}
     h+=`<article class="ex"><div class="ex-head"><span class="ex-num" aria-hidden="true">${i+1}</span><div>
       <h3 class="ex-name"><button type="button" class="nm-btn" data-act="hist" data-ex="${esc(ex.id)}" aria-label="ดูประวัติ ${esc(ex.n)}">${esc(ex.n)}<span class="chev" aria-hidden="true">›</span></button> ${ex.alt?`<small>${esc(ex.alt)}</small>`:''}</h3>
       <p class="ex-target">${ex.sets} × ${ex.lo===ex.hi?ex.lo:ex.lo+'–'+ex.hi}${sec?' วินาที':''}, พัก ${fmtRest(ex.rest)}${ex.unit==='kg'?`<button type="button" class="plbtn" data-act="plate" data-ex="${esc(ex.id)}" aria-label="คิดแผ่นน้ำหนัก ${esc(ex.n)}">แผ่น</button>`:''}</p>
-      <p class="hint ${sg.up?'up':sg.down?'down':''}">${esc(sg.text)}</p></div></div>${warmHTML(ex,day,sess)}<div class="sets">`;
+      <p class="hint ${sg.up?'up':sg.down?'down':''}">${esc(sg.text)}</p></div>${foldBtn}</div>${warmHTML(ex,day,sess)}<div class="sets">`;
     arr.forEach((s,j)=>{
       h+=`<div class="set ${s.done?'done':''} ${sec?'sec':''}"><span class="sn">${j+1}</span>
         ${sec?'':`<label class="f"><input type="number" inputmode="decimal" step="0.5" min="0" aria-label="${esc(ex.n)} เซ็ต ${j+1} น้ำหนัก" data-ex="${esc(ex.id)}" data-i="${j}" data-k="w" value="${s.w??''}" placeholder="${sg.w??''}"><span>${ex.unit==='bw'?'kg ถ่วง':'kg'}</span></label>`}
@@ -398,6 +404,7 @@ function renderReport(){
   const dv=P.vol?Math.round((W.vol-P.vol)/P.vol*100):null;
   h+=`<div class="stats"><div class="stat"><b>${W.trained}/${nd}</b><span>วันที่ฝึก</span></div><div class="stat"><b>${W.sets}</b><span>เซ็ตทั้งหมด</span></div><div class="stat"><b>${fmt(W.vol/1000)}</b><span>ตันที่ยกรวม${dv!=null?` <span class="${dv>=0?'up-t':'down-t'}">${dv>=0?'+':''}${dv}%</span>`:''}</span></div></div>`;
   h+=`<section class="panel"><div class="days">${[0,1,2,3,4,5,6].map(i=>{const s=S.sessions[keyOf(addDays(W.start,i))];const did=s&&Object.values(s.sets||{}).some(a=>a.some(x=>x.done));const col=did?`var(${colorOf(s.day)})`:'transparent';return `<div>${TH_SHORT[i]}<i style="background:${col};border-color:${did?col:'var(--line)'}"></i></div>`}).join('')}</div></section>`;
+  h+=mgVolumeHTML(W);
   const order=[];days().forEach(d=>d.ex.forEach(e=>order.push(e.id)));
   const ids=Object.keys(W.best).sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?999:ia)-(ib<0?999:ib)});
   if(ids.length){
@@ -491,7 +498,8 @@ function renderEditor(){
           <label><span class="cap">พัก (วินาที)</span><span class="f"><input type="number" inputmode="numeric" min="0" step="15" data-p="${i}.ex.${j}.rest" value="${e.rest}"></span></label>
           <label><span class="cap">เพิ่มทีละ (kg)</span><span class="f"><input type="number" inputmode="decimal" min="0" step="0.5" data-p="${i}.ex.${j}.inc" value="${e.inc}"></span></label>
           <label><span class="cap">ประเภท</span><span class="f"><select data-p="${i}.ex.${j}.unit"><option value="kg" ${e.unit==='kg'?'selected':''}>น้ำหนัก</option><option value="bw" ${e.unit==='bw'?'selected':''}>บอดี้เวต</option><option value="sec" ${e.unit==='sec'?'selected':''}>จับเวลา</option></select></span></label>
-        </div>${e.unit==='kg'?`<label class="chk ed-warm"><input type="checkbox" data-p="${i}.ex.${j}.warm" ${warmOn(e,d)?'checked':''}> เซ็ตวอร์มอัพอัตโนมัติ</label>`:''}</div>`});
+        </div>${e.unit==='kg'?`<label class="chk ed-warm"><input type="checkbox" data-p="${i}.ex.${j}.warm" ${warmOn(e,d)?'checked':''}> เซ็ตวอร์มอัพอัตโนมัติ</label>`:''}
+        <div class="ed-mg"><span class="cap">กล้ามเนื้อที่ใช้${Array.isArray(e.mg)?'':' <span class="muted">(เดาจากชื่อท่า แตะเพื่อแก้)</span>'}</span><div class="chips">${MG.map(([g,l])=>`<button type="button" class="chip" data-act="mgtog" data-d="${i}" data-j="${j}" data-g="${g}" aria-pressed="${mgOf(e).includes(g)}">${l}</button>`).join('')}</div></div></div>`});
     h+=`<div class="row" style="margin-top:10px"><button type="button" class="btn ghost" data-act="exadd" data-d="${i}">+ เพิ่มท่า</button>${D.days.length>1?`<button type="button" class="link" data-act="daydel" data-d="${i}">ลบวันนี้ออกจากโปรแกรม</button>`:''}</div></section>`});
   h+=`<div class="row" style="margin-bottom:12px"><button type="button" class="btn ghost" data-act="dayadd">+ เพิ่มวันฝึก</button><button type="button" class="link" data-act="progdefault">ใช้โปรแกรมเริ่มต้น</button></div>
     <div class="savebar"><div class="box"><button type="button" class="btn ghost" data-act="edcancel">ยกเลิก</button><button type="button" class="btn" data-act="edsave">บันทึกโปรแกรม</button></div></div>`;
@@ -653,6 +661,47 @@ function renderPlate(){
     <div id="plres">${plateResult(st)}</div>
     <p class="muted" style="font-size:13px;margin:12px 0 0">แผ่นที่มี: ${platesAvail().map(fmtP).join(', ')} kg · เปลี่ยนได้ที่ ตั้งค่า > แผ่นน้ำหนัก</p>`;
 }
+
+/* ---------- muscle groups & weekly volume ---------- */
+const MG=[['chest','อก'],['back','หลัง'],['shoulders','ไหล่'],['biceps','ไบเซป'],['triceps','ไตรเซป'],['quads','หน้าขา'],['hams','หลังขา/ก้น'],['calves','น่อง'],['core','แกนกลาง']];
+const MG_LABEL=Object.fromEntries(MG);
+// [match, group, exclude] — several rules may hit one exercise (compound lifts count for each muscle)
+const MG_RULES=[
+  [/leg curl|hamstring|romanian|rdl|deadlift|hip thrust|glute|good morning|back extension|lunge|split squat|step.?up|หลังขา|ก้น|เดดลิฟต์|ลันจ์/i,'hams',null],
+  [/squat|leg press|lunge|leg extension|hack|step.?up|split squat|หน้าขา|สควอท|สควอต/i,'quads',null],
+  [/\bdeadlift/i,'back',/romanian|rdl|stiff/i],
+  [/calf|calves|น่อง/i,'calves',null],
+  [/plank|crunch|\babs?\b|sit.?up|leg raise|hanging|dead bug|แกนกลาง|ท้อง|แพลงก์|ซิทอัพ|ครันช์/i,'core',null],
+  [/bench|chest|fly|flye|pec|push.?up|\bdip|incline|decline|อก|ดันพื้น/i,'chest',/curl/i],
+  [/\brow|pulldown|pull.?up|\bchin|\blat\b|lats|face pull|rear delt|หลัง(?!ขา)|ดึง/i,'back',null],
+  [/shoulder|overhead press|ohp|military|lateral raise|front raise|face pull|arnold|rear delt|upright|ไหล่/i,'shoulders',/tricep|extension/i],
+  [/curl|bicep|pull.?up|\bchin|ไบเซป|เคิร์ล/i,'biceps',/leg/i],
+  [/pushdown|push.?down|tricep|skull|close.?grip|extension|\bdip|bench|chest press|incline.*press|decline.*press|shoulder press|overhead press|ohp|ไตรเซป/i,'triceps',/leg|back extension|pulldown|\brow/i]
+];
+function mgInfer(name){const n=String(name||'');const out=[];MG_RULES.forEach(([re,g,ex])=>{if(re.test(n)&&!(ex&&ex.test(n))&&!out.includes(g))out.push(g)});return out}
+const mgOf=ex=>Array.isArray(ex.mg)?ex.mg:mgInfer(ex.n);
+function mgWeek(W){
+  const done={},planned={},untagged=[];
+  Object.keys(S.sessions).filter(k=>k>=W.sk&&k<W.ek).forEach(k=>Object.entries(S.sessions[k].sets||{}).forEach(([id,arr])=>{const ex=W.EXM[id];if(!ex)return;const n=arr.filter(x=>x.done).length;if(!n)return;mgOf(ex).forEach(g=>done[g]=(done[g]||0)+n)}));
+  days().forEach(d=>d.ex.forEach(e=>{const gs=mgOf(e);if(!gs.length)untagged.push(e.n);gs.forEach(g=>planned[g]=(planned[g]||0)+(e.sets||0))}));
+  return {done,planned,untagged};
+}
+function mgVolumeHTML(W){
+  const {done,planned,untagged}=mgWeek(W);
+  const rows=MG.filter(([g])=>(done[g]||0)+(planned[g]||0)>0);
+  if(!rows.length)return '';
+  const li=rows.map(([g,l])=>{const d=done[g]||0,p=planned[g]||0,max=Math.max(22,d,p)*1.04,cls=d>=20?'hi':d>=10?'ok':'lo';
+    return `<li><span class="nm">${l}</span><span class="track" role="img" aria-label="${l} ทำแล้ว ${d} เซ็ต จากที่วางไว้ ${p} เซ็ต"><b class="zone" style="left:${10/max*100}%;width:${10/max*100}%"></b><i class="plan" style="width:${Math.min(100,p/max*100)}%"></i><i class="done ${cls}" style="width:${Math.min(100,d/max*100)}%"></i></span><span class="n">${d}<small>/${p}</small></span></li>`}).join('');
+  return `<section class="panel"><h2>ปริมาณงานต่อกล้ามเนื้อ</h2>
+    <p class="muted" style="font-size:14px">เซ็ตจริงที่กด ✓ ในสัปดาห์นี้ (ไม่รวมวอร์มอัพ) ต่อเซ็ตที่โปรแกรมวางไว้ทั้งสัปดาห์ แถบจางคือที่วางไว้ เส้นประคือช่วง 10–20 เซ็ตต่อสัปดาห์ซึ่งเหมาะกับการสร้างกล้ามสำหรับคนส่วนใหญ่ ท่า compound นับให้ทุกกล้ามเนื้อที่ใช้</p>
+    <ul class="mgv">${li}</ul>
+    ${untagged.length?`<p class="muted" style="font-size:13px;margin:8px 0 0">ยังไม่รู้ว่าท่าไหนใช้กล้ามเนื้ออะไร: ${untagged.map(esc).join(', ')} ระบุได้ใน ตั้งค่า > แก้ไขโปรแกรม</p>`:''}</section>`;
+}
+
+/* ---------- fold (collapse) exercise cards in Today ---------- */
+const LS_FOLD='gymlog3:fold';
+function foldSet(){try{const o=JSON.parse(localStorage.getItem(LS_FOLD)||'null');if(o&&o.date===todayKey())return new Set(o.ids)}catch(e){}return new Set()}
+function foldSave(set){try{localStorage.setItem(LS_FOLD,JSON.stringify({date:todayKey(),ids:[...set]}))}catch(e){}}
 
 /* ---------- RIR (reps in reserve) ---------- */
 const rirOn=()=>S.profile.rir!==false;
@@ -818,6 +867,7 @@ document.addEventListener('click',async e=>{
       s.done=true;startTimer(ex.rest,arr.some(x=>!x.done)?`พัก ${fmtRest(ex.rest)} ก่อนเซ็ตถัดไป`:'จบท่านี้แล้ว พักแล้วไปท่าต่อไป');
     } else s.done=false;
     save('s',sess.date);render();const p=dayProgress(sess,day);if(p.done===p.total)toast('ครบทุกเซ็ตแล้ว เก่งมาก');return}
+  if(a==='fold'){const f=foldSet(),id=b.dataset.ex;if(f.has(id))f.delete(id);else f.add(id);foldSave(f);render();return}
   if(a==='rir'){const day=activeDay();if(!day)return;const sess=ensureSession(day),ex=day.ex.find(x=>x.id===b.dataset.ex);if(!ex)return;
     const st=setsFor(sess,ex)[+b.dataset.i],v=+b.dataset.v;st.rir=st.rir===v?null:v;save('s',sess.date);render();return}
   if(a==='wtick'){const day=activeDay();if(!day)return;const sess=ensureSession(day),ex=day.ex.find(x=>x.id===b.dataset.ex);if(!ex)return;
@@ -886,6 +936,7 @@ document.addEventListener('click',async e=>{
   if(D){
     const di=+b.dataset.d,j=+b.dataset.j;
     if(a==='exadd'){D.days[di].ex.push({id:uid('x'),n:'',alt:'',sets:3,lo:8,hi:12,rest:90,inc:2.5,unit:'kg'});render();const ins=document.querySelectorAll(`[data-p^="${di}.ex."][data-p$=".n"]`);if(ins.length)ins[ins.length-1].focus();return}
+    if(a==='mgtog'){const e=D.days[di].ex[j],g=b.dataset.g,cur=mgOf(e);e.mg=cur.includes(g)?cur.filter(x=>x!==g):cur.concat([g]);render();return}
     if(a==='exdel'){const ex=D.days[di].ex[j];if(ex.n&&!confirm(`ลบท่า ${ex.n} ไหม`))return;D.days[di].ex.splice(j,1);render();return}
     if(a==='exup'||a==='exdn'){const arr=D.days[di].ex,k=a==='exup'?j-1:j+1;if(k<0||k>=arr.length)return;[arr[j],arr[k]]=[arr[k],arr[j]];render();return}
     if(a==='dayadd'){const used=D.days.map(d=>d.wd),wd=[2,4,6,0,1,3,5].find(w=>!used.includes(w))??6;D.days.push({id:uid('d'),name:'วัน'+TH_DAY[wd],wd,title:'',light:false,ex:[]});render();return}
