@@ -1,6 +1,6 @@
 /* Service worker: makes the app work offline.
    Bump VERSION whenever you change any file, so phones pick up the update. */
-const VERSION = 'gymlog-v6';
+const VERSION = 'gymlog-v7';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png',
@@ -9,7 +9,8 @@ const SHELL = [
 const FONT_CACHE = 'gymlog-fonts';
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)));
+  // cache:'reload' bypasses the browser HTTP cache so a new version never installs stale files
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))));
 });
 
 self.addEventListener('activate', e => {

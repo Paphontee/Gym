@@ -26,6 +26,7 @@ const DEFAULT_PROGRAM = {days:[
     {id:'f6',n:'Overhead triceps extension',alt:'',sets:3,lo:10,hi:12,rest:60,inc:1,unit:'kg'},
     {id:'f7',n:'Face pull',alt:'',sets:2,lo:15,hi:15,rest:60,inc:2.5,unit:'kg'}]}
 ], archive:{}};
+const APP_VERSION='v7'; // keep in step with VERSION in sw.js
 const COLORS=['--accent','--teal','--green','--purple','--yellow','--red','--blue'];
 const TH_DAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TH_SHORT=['จ','อ','พ','พฤ','ศ','ส','อา'];
@@ -447,7 +448,8 @@ function renderSettings(){
     ${S.fallback?`<p class="muted" style="font-size:14px;margin-top:10px">ดาวน์โหลดไม่สำเร็จ คัดลอกข้อความด้านล่างไปเก็บไว้แทน</p><textarea class="code" id="fbtxt" readonly>${esc(S.fallback)}</textarea><button type="button" class="btn ghost" data-act="copyfb" style="margin-top:6px">คัดลอก</button>`:''}
     <details style="margin-top:10px"><summary class="add">กู้คืนจากข้อความที่คัดลอกไว้</summary><textarea class="code" id="pastetxt" placeholder="วางข้อความ JSON ที่นี่"></textarea><button type="button" class="btn ghost" data-act="imppaste" style="margin-top:6px">กู้คืน</button></details>
   </section>
-  <section class="panel"><h2>ติดตั้งแอป</h2>${isStandalone()?'<p class="muted" style="margin:0">เปิดเป็นแอปอยู่แล้ว ใช้งานได้แม้ไม่มีเน็ต</p>':installEvt?'<button type="button" class="btn" data-act="install">ติดตั้งลงเครื่อง</button>':isIOS()?'<p style="margin:0;font-size:15px">เปิดหน้านี้ใน Safari กดปุ่มแชร์ แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"</p>':'<p style="margin:0;font-size:15px">เปิดเมนูของเบราว์เซอร์ แล้วเลือก "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอหลัก"</p>'}</section>
+  <section class="panel"><h2>ติดตั้งแอป</h2>${isStandalone()?'<p class="muted" style="margin:0">เปิดเป็นแอปอยู่แล้ว ใช้งานได้แม้ไม่มีเน็ต</p>':installEvt?'<button type="button" class="btn" data-act="install">ติดตั้งลงเครื่อง</button>':isIOS()?'<p style="margin:0;font-size:15px">เปิดหน้านี้ใน Safari กดปุ่มแชร์ แล้วเลือก "เพิ่มไปยังหน้าจอโฮม"</p>':'<p style="margin:0;font-size:15px">เปิดเมนูของเบราว์เซอร์ แล้วเลือก "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอหลัก"</p>'}
+    <div class="row" style="margin-top:12px"><button type="button" class="btn ghost" data-act="checkupd">ตรวจหาเวอร์ชันใหม่</button><span class="muted" style="font-size:13px">เวอร์ชัน ${APP_VERSION}</span></div></section>
   <section class="panel"><h2>เริ่มใหม่</h2><p class="muted">ลบบันทึกการฝึกและอาหารทั้งหมด (โปรแกรมและเป้าหมายยังอยู่) ย้อนกลับไม่ได้ แนะนำให้ดาวน์โหลดไฟล์สำรองก่อน</p><button type="button" class="btn danger" data-act="reset">ลบบันทึกทั้งหมด</button></section>`;
 }
 function renderStatus(){const el=$('#status');if(!el)return;
@@ -803,6 +805,16 @@ document.addEventListener('click',async e=>{
   if(a==='ddisc'){if(!confirm('เลิกเชื่อมต่อ Google Drive ไหม ข้อมูลในเครื่องและใน Drive ยังอยู่'))return;Drive.disconnect();render();return}
   if(a==='install'){if(installEvt){installEvt.prompt();try{await installEvt.userChoice}catch(_){}installEvt=null;render()}return}
   if(a==='update'){if(swWaiting)swWaiting.postMessage('SKIP_WAITING');return}
+  if(a==='checkupd'){
+    if(!('serviceWorker' in navigator)){location.reload();return}
+    toast('กำลังตรวจ…');
+    try{const reg=await navigator.serviceWorker.getRegistration();if(!reg){location.reload();return}
+      await reg.update();
+      if(reg.waiting){showUpdate(reg.waiting);toast('มีเวอร์ชันใหม่ กดปุ่มอัปเดตด้านบน')}
+      else if(reg.installing){toast('กำลังโหลดเวอร์ชันใหม่ รอสักครู่แล้วจะมีปุ่มอัปเดต')}
+      else toast(`เป็นเวอร์ชันล่าสุดแล้ว (${APP_VERSION})`)}
+    catch(e){toast('ตรวจไม่สำเร็จ ลองใหม่ตอนมีอินเทอร์เน็ต')}
+    return}
   if(a==='ics'){S.profile.notifyTime=$('#nt').value||'17:00';S.profile.notifyAlarm=+$('#na').value;S.profile.notifySummary=$('#nsum').checked;save('p','me');
     download('gymlog-schedule.ics',icsText(S.profile.notifyTime,S.profile.notifyAlarm,S.profile.notifySummary),'text/calendar');return}
   if(a==='reset'){if(!confirm(Drive.connected()?'ลบบันทึกในเครื่องนี้ทั้งหมดไหม (ถ้าเชื่อม Drive อยู่ ข้อมูลใน Drive จะถูกรวมกลับมาตอนซิงก์ ให้เลิกเชื่อมต่อก่อนถ้าจะเริ่มใหม่จริงๆ)':'ลบบันทึกการฝึกและอาหารทั้งหมดจริงไหม'))return;
