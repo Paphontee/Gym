@@ -98,6 +98,7 @@ python3 -m http.server 8000
 | `calcCompute` | เครื่องคิดสารอาหาร (BMR, TDEE, สัดส่วน) |
 | `plateCalc`, `renderPlate` | เครื่องคิดแผ่นน้ำหนัก (ปุ่ม "แผ่น" ในแท็บวันนี้ ตั้งค่าบาร์และแผ่นที่มีในหน้าตั้งค่า) |
 | `renderHist`, `openSheet` | ประวัติท่าต่อท่า (แตะชื่อท่า) และแผง bottom sheet ที่ใช้ร่วมกัน |
+| `warmOn`, `warmPlan`, `warmHTML` | เซ็ตวอร์มอัพอัตโนมัติ (เก็บใน `session.warm` แยกจากเซ็ตจริง เปิดปิดรายท่าด้วย `ex.warm`) |
 | `renderToday`, `renderFood`, `renderProgress`, `renderReport`, `renderSettings`, `renderEditor`, `renderCalc` | หน้าจอแต่ละหน้า |
 | listener `click` ท้ายไฟล์ | จัดการทุกปุ่มผ่าน `data-act` |
 

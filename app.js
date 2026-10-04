@@ -26,7 +26,7 @@ const DEFAULT_PROGRAM = {days:[
     {id:'f6',n:'Overhead triceps extension',alt:'',sets:3,lo:10,hi:12,rest:60,inc:1,unit:'kg'},
     {id:'f7',n:'Face pull',alt:'',sets:2,lo:15,hi:15,rest:60,inc:2.5,unit:'kg'}]}
 ], archive:{}};
-const APP_VERSION='v7'; // keep in step with VERSION in sw.js
+const APP_VERSION='v8'; // keep in step with VERSION in sw.js
 const COLORS=['--accent','--teal','--green','--purple','--yellow','--red','--blue'];
 const TH_DAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TH_SHORT=['จ','อ','พ','พฤ','ศ','ส','อา'];
@@ -289,7 +289,7 @@ function renderToday(){
     h+=`<article class="ex"><div class="ex-head"><span class="ex-num" aria-hidden="true">${i+1}</span><div>
       <h3 class="ex-name"><button type="button" class="nm-btn" data-act="hist" data-ex="${esc(ex.id)}" aria-label="ดูประวัติ ${esc(ex.n)}">${esc(ex.n)}<span class="chev" aria-hidden="true">›</span></button> ${ex.alt?`<small>${esc(ex.alt)}</small>`:''}</h3>
       <p class="ex-target">${ex.sets} × ${ex.lo===ex.hi?ex.lo:ex.lo+'–'+ex.hi}${sec?' วินาที':''}, พัก ${fmtRest(ex.rest)}${ex.unit==='kg'?`<button type="button" class="plbtn" data-act="plate" data-ex="${esc(ex.id)}" aria-label="คิดแผ่นน้ำหนัก ${esc(ex.n)}">แผ่น</button>`:''}</p>
-      <p class="hint ${sg.up?'up':''}">${esc(sg.text)}</p></div></div><div class="sets">`;
+      <p class="hint ${sg.up?'up':''}">${esc(sg.text)}</p></div></div>${warmHTML(ex,day,sess)}<div class="sets">`;
     arr.forEach((s,j)=>{
       h+=`<div class="set ${s.done?'done':''} ${sec?'sec':''}"><span class="sn">${j+1}</span>
         ${sec?'':`<label class="f"><input type="number" inputmode="decimal" step="0.5" min="0" aria-label="${esc(ex.n)} เซ็ต ${j+1} น้ำหนัก" data-ex="${esc(ex.id)}" data-i="${j}" data-k="w" value="${s.w??''}" placeholder="${sg.w??''}"><span>${ex.unit==='bw'?'kg ถ่วง':'kg'}</span></label>`}
@@ -434,6 +434,8 @@ function renderSettings(){
     <label class="field"><span>น้ำหนักบาร์เปล่าที่ใช้ประจำ</span><span class="f"><input id="sbar" type="number" inputmode="decimal" step="0.5" min="0" value="${barKg()}"><span>kg</span></span></label>
     <span class="muted" style="display:block;font-size:14px;margin:0 0 4px">แผ่นที่ยิมมี (แตะเพื่อเปิด/ปิด)</span>
     <div class="chips" style="margin:0">${PLATE_ALL.map(p=>`<button type="button" class="chip" data-act="pltog" data-p="${p}" aria-pressed="${platesAvail().includes(p)}">${fmtP(p)} kg</button>`).join('')}</div></section>
+  <section class="panel"><h2>เซ็ตวอร์มอัพ</h2><p class="muted" style="font-size:14px">ท่าแรกของวันและท่าหนัก (6–8 ครั้ง) จะมีเซ็ตวอร์มให้ก่อนเซ็ตจริง: 40% × 8, 60% × 5, 80% × 3 ของน้ำหนักที่จะยก (เพิ่ม 90% × 1 ถ้าเกิน 100 kg) ไม่นับเป็นเซ็ตจริงและไม่กระทบสถิติ เลือกเปิดปิดรายท่าได้ใน แก้ไขโปรแกรม</p>
+    <label class="chk"><input type="checkbox" id="swarm" ${warmGlobal()?'checked':''}> แสดงเซ็ตวอร์มอัพในแท็บวันนี้</label></section>
   <section class="panel"><h2>ที่เก็บข้อมูล</h2>
     <p style="font-size:15px;margin:0 0 6px">ข้อมูลอยู่ในเครื่องนี้ ไม่ได้ส่งไปเซิร์ฟเวอร์ของใคร ถ้าอยากให้อยู่นอกเครื่องด้วย ให้เชื่อม Google Drive ของคุณ หรือดาวน์โหลดไฟล์สำรองไปเก็บเอง</p>
     <h3 style="font-size:16px;margin:14px 0 6px">Google Drive</h3>
@@ -478,7 +480,7 @@ function renderEditor(){
           <label><span class="cap">พัก (วินาที)</span><span class="f"><input type="number" inputmode="numeric" min="0" step="15" data-p="${i}.ex.${j}.rest" value="${e.rest}"></span></label>
           <label><span class="cap">เพิ่มทีละ (kg)</span><span class="f"><input type="number" inputmode="decimal" min="0" step="0.5" data-p="${i}.ex.${j}.inc" value="${e.inc}"></span></label>
           <label><span class="cap">ประเภท</span><span class="f"><select data-p="${i}.ex.${j}.unit"><option value="kg" ${e.unit==='kg'?'selected':''}>น้ำหนัก</option><option value="bw" ${e.unit==='bw'?'selected':''}>บอดี้เวต</option><option value="sec" ${e.unit==='sec'?'selected':''}>จับเวลา</option></select></span></label>
-        </div></div>`});
+        </div>${e.unit==='kg'?`<label class="chk ed-warm"><input type="checkbox" data-p="${i}.ex.${j}.warm" ${warmOn(e,d)?'checked':''}> เซ็ตวอร์มอัพอัตโนมัติ</label>`:''}</div>`});
     h+=`<div class="row" style="margin-top:10px"><button type="button" class="btn ghost" data-act="exadd" data-d="${i}">+ เพิ่มท่า</button>${D.days.length>1?`<button type="button" class="link" data-act="daydel" data-d="${i}">ลบวันนี้ออกจากโปรแกรม</button>`:''}</div></section>`});
   h+=`<div class="row" style="margin-bottom:12px"><button type="button" class="btn ghost" data-act="dayadd">+ เพิ่มวันฝึก</button><button type="button" class="link" data-act="progdefault">ใช้โปรแกรมเริ่มต้น</button></div>
     <div class="savebar"><div class="box"><button type="button" class="btn ghost" data-act="edcancel">ยกเลิก</button><button type="button" class="btn" data-act="edsave">บันทึกโปรแกรม</button></div></div>`;
@@ -641,6 +643,35 @@ function renderPlate(){
     <p class="muted" style="font-size:13px;margin:12px 0 0">แผ่นที่มี: ${platesAvail().map(fmtP).join(', ')} kg · เปลี่ยนได้ที่ ตั้งค่า > แผ่นน้ำหนัก</p>`;
 }
 
+/* ---------- warm-up sets ---------- */
+const warmGlobal=()=>S.profile.warmups!==false;
+function warmOn(ex,day){
+  if(ex.unit!=='kg')return false;
+  if(typeof ex.warm==='boolean')return ex.warm;
+  const firstKg=day&&day.ex.find(e=>e.unit==='kg');
+  return !!(firstKg&&firstKg.id===ex.id)||((ex.lo||0)<=8&&(ex.inc||0)>=2.5);
+}
+function warmPlan(ex,W){
+  if(!(W>=30))return [];
+  const step=(ex.inc||0)>=2.5?2.5:(ex.inc||0)>=1?1:0.5,rnd=v=>Math.round(v/step)*step;
+  const pct=W<45?[[0.5,8]]:W<100?[[0.4,8],[0.6,5],[0.8,3]]:[[0.4,8],[0.6,5],[0.8,3],[0.9,1]];
+  const out=[];pct.forEach(([p,r])=>{const w=rnd(W*p);if(w>0&&w<W&&!out.some(x=>x.w===w))out.push({w,r})});
+  return out;
+}
+function warmDone(sess,exId){if(!sess.warm)sess.warm={};if(!sess.warm[exId])sess.warm[exId]=[];return sess.warm[exId]}
+function warmHTML(ex,day,sess){
+  if(!warmGlobal()||!warmOn(ex,day))return '';
+  const W=plateTarget(ex);
+  if(!W)return '<div class="warm"><p class="wu-note">วอร์มอัพ: ใส่น้ำหนักเซ็ตแรกก่อน แอปจะคำนวณเซ็ตวอร์มให้</p></div>';
+  const plan=warmPlan(ex,W);if(!plan.length)return '';
+  const wd=(sess&&sess.warm&&sess.warm[ex.id])||[],n=plan.filter((_,i)=>wd[i]).length;
+  return `<div class="warm"><div class="wu-head"><span>วอร์มอัพ · ไม่นับเป็นเซ็ตจริง</span><span>${n===plan.length?'เสร็จแล้ว':`${n}/${plan.length}`}</span></div>
+    ${plan.map((x,i)=>`<div class="set wu ${wd[i]?'done':''}"><span class="sn">W${i+1}</span>
+      <button type="button" class="wu-w" data-act="plate" data-ex="${esc(ex.id)}" data-w="${x.w}" aria-label="คิดแผ่นสำหรับ ${fmt(x.w)} กิโลกรัม">${fmt(x.w)} <small>kg</small></button>
+      <span class="wu-r">× ${x.r}</span>
+      <button type="button" class="tick" data-act="wtick" data-ex="${esc(ex.id)}" data-i="${i}" aria-pressed="${!!wd[i]}" aria-label="จบเซ็ตวอร์ม ${i+1}">✓</button></div>`).join('')}</div>`;
+}
+
 /* ---------- backup ---------- */
 function backupObj(){return {app:'gymlog3',version:2,exportedAt:new Date().toISOString(),profile:S.profile,sessions:S.sessions,food:S.food}}
 function csvText(){
@@ -726,6 +757,7 @@ function onField(e){
   const t=e.target;
   if(t.id==='plw'&&S.sheet&&S.sheet.type==='plate'){S.sheet.w=num(t.value);const el=$('#plres');if(el)el.innerHTML=plateResult(S.sheet);return}
   if(t.id==='sbar'){S.profile.barKg=num(t.value);save('p','me');return}
+  if(t.id==='swarm'){S.profile.warmups=t.checked;save('p','me');return}
   if(t.dataset.c&&S.view==='calc'){const c=calcState(),k=t.dataset.c;c[k]=(k==='act'||k==='fatPct'||k==='meals')?num(t.value):(t.value===''?null:num(t.value));const o=$('#calcOut');if(o)o.innerHTML=calcOut();return}
   if(t.dataset.ex&&S.view==='today'){const day=activeDay();if(!day)return;const sess=ensureSession(day),ex=day.ex.find(x=>x.id===t.dataset.ex);if(!ex)return;
     setsFor(sess,ex)[+t.dataset.i][t.dataset.k]=num(t.value);save('s',sess.date);return}
@@ -752,7 +784,7 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
   if(a==='sheetclose'){closeSheet();return}
   if(a==='hist'){S.sheet={type:'hist',ex:b.dataset.ex};openSheet(renderHist(b.dataset.ex));return}
-  if(a==='plate'){const ex=exMap()[b.dataset.ex];if(!ex)return;S.sheet={type:'plate',ex:ex.id,exName:ex.n,w:plateTarget(ex),bar:barKg()};openSheet(renderPlate());return}
+  if(a==='plate'){const ex=exMap()[b.dataset.ex];if(!ex)return;S.sheet={type:'plate',ex:ex.id,exName:ex.n,w:b.dataset.w?num(b.dataset.w):plateTarget(ex),bar:barKg()};openSheet(renderPlate());return}
   if(a==='plw'){const st=S.sheet;if(!st||st.type!=='plate')return;st.w=r05(Math.max(0,(st.w??st.bar)+ +b.dataset.d));openSheet(renderPlate());return}
   if(a==='plbar'){const st=S.sheet;if(!st||st.type!=='plate')return;st.bar=+b.dataset.b;openSheet(renderPlate());return}
   if(a==='pltog'){const p=+b.dataset.p,cur=platesAvail(),nx=cur.includes(p)?cur.filter(x=>x!==p):cur.concat([p]);if(!nx.length){toast('ต้องมีแผ่นอย่างน้อย 1 ขนาด');return}S.profile.plates=nx.sort((x,y)=>y-x);save('p','me');render();return}
@@ -765,6 +797,11 @@ document.addEventListener('click',async e=>{
       s.done=true;startTimer(ex.rest,arr.some(x=>!x.done)?`พัก ${fmtRest(ex.rest)} ก่อนเซ็ตถัดไป`:'จบท่านี้แล้ว พักแล้วไปท่าต่อไป');
     } else s.done=false;
     save('s',sess.date);render();const p=dayProgress(sess,day);if(p.done===p.total)toast('ครบทุกเซ็ตแล้ว เก่งมาก');return}
+  if(a==='wtick'){const day=activeDay();if(!day)return;const sess=ensureSession(day),ex=day.ex.find(x=>x.id===b.dataset.ex);if(!ex)return;
+    const arr=warmDone(sess,ex.id),i=+b.dataset.i;arr[i]=!arr[i];
+    if(arr[i]){const plan=warmPlan(ex,plateTarget(ex)),last=plan.every((_,k)=>arr[k]);
+      startTimer(last?Math.min(90,Math.max(60,Math.round((ex.rest||90)/2))):45,last?'วอร์มครบแล้ว พักแล้วเริ่มเซ็ตจริง':'พักสั้นๆ แล้ววอร์มเซ็ตถัดไป')}
+    save('s',sess.date);render();return}
   if(a==='t30'){T.end=Math.max(T.end,Date.now())+30000;$('#timer').classList.remove('over');tick();return}
   if(a==='tstop'){stopTimer();return}
   // food
@@ -839,7 +876,7 @@ document.addEventListener('click',async e=>{
           if(!(e.sets>=1&&e.sets<=10)){toast(`${e.n}: จำนวนเซ็ตต้องอยู่ระหว่าง 1–10`);return}
           if(!(e.lo>=1)||!(e.hi>=e.lo)){toast(`${e.n}: ช่วงครั้งไม่ถูกต้อง (สูงสุดต้องไม่น้อยกว่าต่ำสุด)`);return}
           if(!(e.rest>=0))e.rest=60; if(!(e.inc>=0))e.inc=0;
-          e.n=String(e.n).trim();e.alt=String(e.alt||'').trim();}}
+          e.n=String(e.n).trim();e.alt=String(e.alt||'').trim();e.warm=e.unit==='kg'?(typeof e.warm==='boolean'?e.warm:warmOn(e,d)):false;}}
       const newIds=new Set();D.days.forEach(d=>d.ex.forEach(e=>newIds.add(e.id)));
       prog().days.forEach(d=>d.ex.forEach(e=>{if(!newIds.has(e.id)&&histOf(e.id).length)D.archive[e.id]={n:e.n,unit:e.unit,sets:e.sets,lo:e.lo,hi:e.hi,inc:e.inc}}));
       newIds.forEach(id=>{if(D.archive[id])delete D.archive[id]});
