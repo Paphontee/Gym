@@ -26,7 +26,7 @@ const DEFAULT_PROGRAM = {days:[
     {id:'f6',n:'Overhead triceps extension',alt:'',sets:3,lo:10,hi:12,rest:60,inc:1,unit:'kg'},
     {id:'f7',n:'Face pull',alt:'',sets:2,lo:15,hi:15,rest:60,inc:2.5,unit:'kg'}]}
 ], archive:{}};
-const APP_VERSION='v10'; // keep in step with VERSION in sw.js
+const APP_VERSION='v11'; // keep in step with VERSION in sw.js
 const COLORS=['--accent','--teal','--green','--purple','--yellow','--red','--blue'];
 const TH_DAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TH_SHORT=['จ','อ','พ','พฤ','ศ','ส','อา'];
@@ -186,6 +186,7 @@ function suggest(ex){
   const h=histOf(ex.id,todayKey()); const last=h[h.length-1];
   if(!last) return {w:null,up:false,text:ex.unit==='sec'?`เริ่มที่ ${ex.lo} วินาที แล้วค่อยเพิ่ม`:`ครั้งแรก: เลือกน้ำหนักที่ทำได้ ${ex.lo}–${ex.hi} ครั้งโดยยังเหลือแรง 1–2 ครั้ง`};
   const ds=last.sets,d=fromKey(last.key),reps=ds.map(s=>s.r||0).join(', ');
+  if(deloadActive()&&ex.unit!=='kg')return {w:null,up:false,deload:true,text:`สัปดาห์ deload: ทำประมาณครึ่งหนึ่งของครั้งก่อน (${reps}) เน้นฟอร์ม`};
   const allTop=ds.length>=ex.sets&&ds.every(s=>(s.r||0)>=ex.hi);
   if(ex.unit==='sec') return allTop?{w:null,up:true,text:`ครั้งก่อนได้ครบ ${ex.hi} วินาที ลองเพิ่มเวลาหรือเปลี่ยนเป็นท่าที่ยากขึ้น`}:{w:null,up:false,text:`ครั้งก่อน (${thDate(d)}) ทำได้ ${reps} วินาที`};
   const topW=Math.max(...ds.map(s=>s.w||0));
@@ -193,6 +194,9 @@ function suggest(ex){
     if(ex.unit==='bw') return allTop?{w:null,up:true,text:`ครั้งก่อนได้ครบ ${ex.hi} ครั้งทุกเซ็ต ลองถ่วงน้ำหนักเพิ่ม หรือลดแรงช่วยลง`}:{w:null,up:false,text:`ครั้งก่อน (${thDate(d)}) ทำได้ ${reps} ครั้ง พยายามเพิ่มอีก 1–2 ครั้ง`};
     return {w:null,up:false,text:`ครั้งก่อน (${thDate(d)}) ทำได้ ${reps} ครั้ง ใส่น้ำหนักด้วย แอปจะบอกได้ว่าเมื่อไหร่ควรเพิ่ม`};
   }
+  if(deloadActive()){const nw=r05(topW*DL_PCT);return {w:nw,up:false,deload:true,text:`สัปดาห์ deload: ใช้ ${fmt(nw)} kg (60% ของ ${fmt(topW)} kg) จำนวนครั้งเท่าเดิม เหลือแรงไว้เยอะๆ`}}
+  const rs=resetOf(ex,topW);
+  if(rs){const nw=r05(topW*0.9);return {w:nw,up:false,down:true,text:`เริ่มไล่ใหม่: ลดเป็น ${fmt(nw)} kg (ลด 10% จาก ${fmt(topW)} kg) ทำให้ครบ ${ex.hi} ครั้งทุกเซ็ตแล้วค่อยเพิ่มตามปกติ`}}
   // RIR (reps in reserve) from last session, when the user recorded it
   const rirs=ds.map(x=>x.rir).filter(v=>v!=null),avgR=rirs.length?rirs.reduce((a,b)=>a+b,0)/rirs.length:null,minR=Math.min(...ds.map(x=>x.r||0));
   const rTxt=avgR==null?'':`, RIR ${fmt(avgR)}`;
@@ -288,7 +292,7 @@ function renderToday(){
   const chips=`<div class="chips" role="group" aria-label="เลือกตาราง">${days().map(d=>`<button type="button" class="chip" data-act="pick" data-day="${esc(d.id)}" aria-pressed="${!!day&&d.id===day.id}">${esc(d.name)}</button>`).join('')}</div>`;
   if(!day){const n=nextWorkout();
     return backupNudge()+`<section class="panel">${n?`<h2>ครั้งถัดไป: ${esc(n.k.name)} ${thDate(n.d)}</h2><p class="muted">${esc(n.k.title)}</p>`:`<h2>ยังไม่มีวันฝึกในโปรแกรม</h2>`}<p class="muted">ถ้าวันนี้จะเล่นชดเชย เลือกตารางด้านล่างได้เลย</p></section>${chips}`}
-  let h=backupNudge()+chips;
+  let h=backupNudge()+deloadHTML()+chips;
   h+=`<p class="note">${day.light?'วันเบา: ทุกเซ็ตเหลือแรงไว้ 2–3 ครั้ง ถ้าคาบพละหนัก ทำแค่ 2 เซ็ตต่อท่าก็พอ':'เซ็ตสุดท้ายของแต่ละท่าให้เหลือแรงไว้ 1–2 ครั้ง กด ✓ เมื่อจบเซ็ตเพื่อเริ่มจับเวลาพัก'}</p>`;
   if(!day.ex.length) h+=`<section class="panel"><p class="muted">วันนี้ยังไม่มีท่า ไปที่ ตั้งค่า > แก้ไขโปรแกรม เพื่อเพิ่มท่า</p></section>`;
   const folded=foldSet();
@@ -304,7 +308,7 @@ function renderToday(){
     h+=`<article class="ex"><div class="ex-head"><span class="ex-num" aria-hidden="true">${i+1}</span><div>
       <h3 class="ex-name"><button type="button" class="nm-btn" data-act="hist" data-ex="${esc(ex.id)}" aria-label="ดูประวัติ ${esc(ex.n)}">${esc(ex.n)}<span class="chev" aria-hidden="true">›</span></button> ${ex.alt?`<small>${esc(ex.alt)}</small>`:''}</h3>
       <p class="ex-target">${ex.sets} × ${ex.lo===ex.hi?ex.lo:ex.lo+'–'+ex.hi}${sec?' วินาที':''}, พัก ${fmtRest(ex.rest)}${ex.unit==='kg'?`<button type="button" class="plbtn" data-act="plate" data-ex="${esc(ex.id)}" aria-label="คิดแผ่นน้ำหนัก ${esc(ex.n)}">แผ่น</button>`:''}</p>
-      <p class="hint ${sg.up?'up':sg.down?'down':''}">${esc(sg.text)}</p></div>${foldBtn}</div>${warmHTML(ex,day,sess)}<div class="sets">`;
+      <p class="hint ${sg.up?'up':sg.down?'down':sg.deload?'deload':''}">${esc(sg.text)}</p>${resetLink(ex,sg)}</div>${foldBtn}</div>${warmHTML(ex,day,sess)}<div class="sets">`;
     arr.forEach((s,j)=>{
       h+=`<div class="set ${s.done?'done':''} ${sec?'sec':''}"><span class="sn">${j+1}</span>
         ${sec?'':`<label class="f"><input type="number" inputmode="decimal" step="0.5" min="0" aria-label="${esc(ex.n)} เซ็ต ${j+1} น้ำหนัก" data-ex="${esc(ex.id)}" data-i="${j}" data-k="w" value="${s.w??''}" placeholder="${sg.w??''}"><span>${ex.unit==='bw'?'kg ถ่วง':'kg'}</span></label>`}
@@ -454,6 +458,9 @@ function renderSettings(){
     <label class="chk"><input type="checkbox" id="swarm" ${warmGlobal()?'checked':''}> แสดงเซ็ตวอร์มอัพในแท็บวันนี้</label></section>
   <section class="panel"><h2>RIR (เหลือแรงอีกกี่ครั้ง)</h2><p class="muted" style="font-size:14px">หลังกด ✓ จบเซ็ต แอปจะถามว่าถ้าฝืนต่อจะทำได้อีกกี่ครั้ง (0 = หมดแรงพอดี, 4+ = เบามาก) คำแนะนำน้ำหนักครั้งถัดไปจะฉลาดขึ้น: เหลือแรงเยอะจะให้เพิ่มมากขึ้นหรือเพิ่มแม้ยังไม่ครบจำนวนครั้ง หมดแรงและได้ไม่ถึงขั้นต่ำจะให้ลดน้ำหนัก</p>
     <label class="chk"><input type="checkbox" id="srir" ${rirOn()?'checked':''}> ถาม RIR หลังจบเซ็ต</label></section>
+  <section class="panel"><h2>Deload</h2><p class="muted" style="font-size:14px">เมื่อฝึกต่อเนื่องครบตามจำนวนสัปดาห์ที่ตั้ง หรือมีท่าติดที่เดิมหลายท่า แอปจะเสนอสัปดาห์ deload ในแท็บวันนี้ ระหว่าง deload ทุกท่าจะแนะนำน้ำหนัก 60% ของปกติ ส่วนท่าที่ติดที่เดิมทีละท่า จะมีปุ่ม "ลด 10% แล้วไล่ขึ้นใหม่" ใต้คำแนะนำของท่านั้น</p>
+    <label class="field"><span>เสนอ deload ทุกๆ</span><span class="f"><select id="sdl">${[[0,'ปิด ไม่ต้องเสนอ'],[4,'4 สัปดาห์'],[5,'5 สัปดาห์'],[6,'6 สัปดาห์'],[8,'8 สัปดาห์']].map(([v,l])=>`<option value="${v}" ${deloadWeeks()===v?'selected':''}>${l}</option>`).join('')}</select></span></label>
+    ${S.profile.deload?`<p class="muted" style="font-size:14px">${deloadActive()?'กำลัง deload อยู่':`deload ล่าสุด ${thDate(fromKey(S.profile.deload.from))} – ${thDate(addDays(fromKey(S.profile.deload.to),-1))}`}</p>`:''}</section>
   <section class="panel"><h2>ที่เก็บข้อมูล</h2>
     <p style="font-size:15px;margin:0 0 6px">ข้อมูลอยู่ในเครื่องนี้ ไม่ได้ส่งไปเซิร์ฟเวอร์ของใคร ถ้าอยากให้อยู่นอกเครื่องด้วย ให้เชื่อม Google Drive ของคุณ หรือดาวน์โหลดไฟล์สำรองไปเก็บเอง</p>
     <h3 style="font-size:16px;margin:14px 0 6px">Google Drive</h3>
@@ -662,6 +669,37 @@ function renderPlate(){
     <p class="muted" style="font-size:13px;margin:12px 0 0">แผ่นที่มี: ${platesAvail().map(fmtP).join(', ')} kg · เปลี่ยนได้ที่ ตั้งค่า > แผ่นน้ำหนัก</p>`;
 }
 
+/* ---------- deload ---------- */
+const DL_PCT=0.6;
+const deloadWeeks=()=>S.profile.deloadWeeks==null?6:+S.profile.deloadWeeks;
+function deloadActive(){const d=S.profile.deload,k=todayKey();return !!(d&&d.from<=k&&k<d.to)}
+function trainedWeeksSince(since){const wk=new Set();Object.keys(S.sessions).forEach(k=>{if(since&&k<since)return;const s=S.sessions[k];if(Object.values(s.sets||{}).some(a=>a.some(x=>x.done)))wk.add(keyOf(monday(fromKey(k))))});return wk.size}
+function deloadDue(){
+  const n=deloadWeeks();if(!n||deloadActive())return null;
+  const k=todayKey();if(S.profile.deloadSnooze&&k<S.profile.deloadSnooze)return null;
+  const w=trainedWeeksSince(S.profile.deload?S.profile.deload.to:null);
+  const stalled=[];days().forEach(d=>d.ex.forEach(e=>{if(e.unit!=='kg')return;const o=overload(e);if(o.cls==='stall'||o.cls==='down')stalled.push(e.n)}));
+  if(w>=n||(w>=3&&stalled.length>=2))return {weeks:w,stalled};
+  return null;
+}
+function deloadHTML(){
+  if(deloadActive()){const d=S.profile.deload;
+    return `<section class="panel dl"><h2>สัปดาห์ deload</h2><p style="font-size:15px">ถึง ${thDate(addDays(fromKey(d.to),-1))} ทุกท่าใช้ประมาณ 60% ของน้ำหนักปกติ จำนวนครั้งเท่าเดิม เน้นฟอร์มและให้ร่างกายฟื้น หลังจากนี้แอปจะกลับไปแนะนำน้ำหนักเดิมเอง</p><button type="button" class="link" data-act="dlend">จบ deload ก่อนกำหนด</button></section>`}
+  const due=deloadDue();if(!due)return '';
+  const why=due.weeks>=deloadWeeks()?`ฝึกต่อเนื่องมา ${due.weeks} สัปดาห์แล้ว`:`ฝึกมา ${due.weeks} สัปดาห์`;
+  const st=due.stalled.length?` และมี ${due.stalled.length} ท่าที่ติดที่เดิมหรือลดลง (${due.stalled.map(esc).join(', ')})`:'';
+  return `<section class="panel dl"><h2>ถึงเวลา deload</h2><p style="font-size:15px">${why}${st} สัปดาห์เบา 1 สัปดาห์ช่วยล้างความล้าสะสม แล้วมักกลับมาแข็งแรงกว่าเดิม</p>
+    <div class="row"><button type="button" class="btn" data-act="dlstart">เริ่ม deload 7 วัน</button><button type="button" class="btn ghost" data-act="dlsnooze">ไว้สัปดาห์หน้า</button></div></section>`;
+}
+function resetLink(ex,sg){
+  if(ex.unit!=='kg'||deloadActive())return '';
+  const r=S.profile.reset&&S.profile.reset[ex.id];
+  if(r&&sg.down&&/เริ่มไล่ใหม่/.test(sg.text))return `<button type="button" class="link" data-act="reset10" data-ex="${esc(ex.id)}">ยกเลิก ใช้น้ำหนักเดิม</button>`;
+  const o=overload(ex);if(o.cls!=='stall'&&o.cls!=='down')return '';
+  return `<button type="button" class="link" data-act="reset10" data-ex="${esc(ex.id)}">${o.cls==='down'?'ทำได้น้อยลง':'ติดที่เดิม'} · ลด 10% แล้วไล่ขึ้นใหม่</button>`;
+}
+function resetOf(ex,topW){const r=S.profile.reset&&S.profile.reset[ex.id];return r&&topW>=r.w*0.95?r:null}
+
 /* ---------- muscle groups & weekly volume ---------- */
 const MG=[['chest','อก'],['back','หลัง'],['shoulders','ไหล่'],['biceps','ไบเซป'],['triceps','ไตรเซป'],['quads','หน้าขา'],['hams','หลังขา/ก้น'],['calves','น่อง'],['core','แกนกลาง']];
 const MG_LABEL=Object.fromEntries(MG);
@@ -828,6 +866,7 @@ function onField(e){
   if(t.id==='sbar'){S.profile.barKg=num(t.value);save('p','me');return}
   if(t.id==='swarm'){S.profile.warmups=t.checked;save('p','me');return}
   if(t.id==='srir'){S.profile.rir=t.checked;save('p','me');return}
+  if(t.id==='sdl'){S.profile.deloadWeeks=+t.value;save('p','me');return}
   if(t.dataset.c&&S.view==='calc'){const c=calcState(),k=t.dataset.c;c[k]=(k==='act'||k==='fatPct'||k==='meals')?num(t.value):(t.value===''?null:num(t.value));const o=$('#calcOut');if(o)o.innerHTML=calcOut();return}
   if(t.dataset.ex&&S.view==='today'){const day=activeDay();if(!day)return;const sess=ensureSession(day),ex=day.ex.find(x=>x.id===t.dataset.ex);if(!ex)return;
     setsFor(sess,ex)[+t.dataset.i][t.dataset.k]=num(t.value);save('s',sess.date);return}
@@ -867,6 +906,10 @@ document.addEventListener('click',async e=>{
       s.done=true;startTimer(ex.rest,arr.some(x=>!x.done)?`พัก ${fmtRest(ex.rest)} ก่อนเซ็ตถัดไป`:'จบท่านี้แล้ว พักแล้วไปท่าต่อไป');
     } else s.done=false;
     save('s',sess.date);render();const p=dayProgress(sess,day);if(p.done===p.total)toast('ครบทุกเซ็ตแล้ว เก่งมาก');return}
+  if(a==='dlstart'){const k=todayKey(),d={from:k,to:keyOf(addDays(new Date(),7))};S.profile.deload=d;(S.profile.deloadLog=S.profile.deloadLog||[]).push(d);S.profile.deloadSnooze=null;save('p','me');render();toast('เริ่มสัปดาห์ deload แล้ว');return}
+  if(a==='dlsnooze'){S.profile.deloadSnooze=keyOf(addDays(new Date(),7));save('p','me');render();toast('จะเตือนอีกครั้งสัปดาห์หน้า');return}
+  if(a==='dlend'){if(!confirm('จบ deload ตอนนี้ แล้วกลับไปใช้น้ำหนักปกติไหม'))return;S.profile.deload.to=todayKey();save('p','me');render();return}
+  if(a==='reset10'){const id=b.dataset.ex;S.profile.reset=S.profile.reset||{};if(S.profile.reset[id])delete S.profile.reset[id];else{const h=histOf(id),l=h[h.length-1],w=l?Math.max(...l.sets.map(x=>x.w||0)):0;if(!w){toast('ยังไม่มีน้ำหนักให้ลด');return}S.profile.reset[id]={date:todayKey(),w}}save('p','me');render();return}
   if(a==='fold'){const f=foldSet(),id=b.dataset.ex;if(f.has(id))f.delete(id);else f.add(id);foldSave(f);render();return}
   if(a==='rir'){const day=activeDay();if(!day)return;const sess=ensureSession(day),ex=day.ex.find(x=>x.id===b.dataset.ex);if(!ex)return;
     const st=setsFor(sess,ex)[+b.dataset.i],v=+b.dataset.v;st.rir=st.rir===v?null:v;save('s',sess.date);render();return}

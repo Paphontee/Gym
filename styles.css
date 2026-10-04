@@ -47,6 +47,9 @@ button{cursor:pointer}
 .hint{margin:6px 0 0;font-size:14px;padding:6px 10px;border-radius:8px;background:var(--soft)}
 .hint.up{background:color-mix(in srgb,var(--green) 14%,transparent)}
 .hint.down{background:color-mix(in srgb,var(--yellow) 22%,transparent)}
+.hint.deload{background:color-mix(in srgb,var(--teal) 18%,transparent)}
+.ex-head .link{padding:4px 0 0;font-size:13px;color:var(--accent);text-decoration:none;font-weight:600}
+.panel.dl{border-left:4px solid var(--accent)}
 .sets{padding:0 14px 12px}
 .set{display:grid;grid-template-columns:28px 1fr 1fr 48px;gap:8px;align-items:center;padding:6px 0;border-top:1px dashed var(--line)}
 .set.sec{grid-template-columns:28px 1fr 48px}
