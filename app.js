@@ -252,7 +252,7 @@ function tick(){const left=Math.round((T.end-Date.now())/1000),el=$('#timer');
 function stopTimer(){clearInterval(T.iv);$('#timer').hidden=true}
 
 /* ---------- render ---------- */
-function setDayColor(day){document.documentElement.style.setProperty('--day',day?`var(${colorOf(day.id)})`:'var(--blue)')}
+function setDayColor(day){document.documentElement.style.setProperty('--day',day?`var(${colorOf(day.id)})`:'var(--accent)')}
 function ringSVG(done,total,label){const r=34,c=2*Math.PI*r,p=total?done/total:0;
   return `<svg class="ring" viewBox="0 0 84 84" role="img" aria-label="${esc(label)}"><circle cx="42" cy="42" r="${r}" fill="none" stroke="var(--line)" stroke-width="9"/><circle cx="42" cy="42" r="${r}" fill="none" stroke="var(--day)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-p)}" transform="rotate(-90 42 42)"/><circle cx="42" cy="42" r="9" fill="var(--bg)" stroke="var(--line)" stroke-width="2"/></svg>`}
 function renderTop(){
@@ -353,7 +353,7 @@ function renderProgress(){
     if(bg!=null){const tot=bg-start,done=latest-start;const pct=tot?Math.max(0,Math.min(100,done/tot*100)):100;bwTxt+=`<div class="bar"><i style="width:${Math.abs(latest-bg)<0.05?100:pct}%"></i></div><span class="muted" style="font-size:14px">เป้า ${fmt(bg)} kg${Math.abs(latest-bg)<0.05?', ถึงแล้ว':`, เหลืออีก ${fmt(Math.abs(bg-latest))} kg`}</span>`}
   }
   h+=`<section class="panel"><h2>น้ำหนักตัว</h2>${bwTxt?`<p style="margin:0 0 4px">${bwTxt}</p>`:'<p class="muted">บันทึกสัปดาห์ละครั้ง ตอนเช้าก่อนกินข้าว จะเทียบได้แม่นที่สุด</p>'}
-    ${sparkSVG(lk.slice(-20).map(k=>log[k]),'--blue')}
+    ${sparkSVG(lk.slice(-20).map(k=>log[k]),'--accent')}
     <div class="form3"><label><span class="cap">น้ำหนักวันนี้</span><span class="f"><input id="bwv" type="number" inputmode="decimal" step="0.1" min="0" placeholder="${latest??''}"><span>kg</span></span></label>
       <label><span class="cap">เป้าหมาย</span><span class="f"><input id="bwg" type="number" inputmode="decimal" step="0.1" min="0" value="${bg??''}"><span>kg</span></span></label>
       <button type="button" class="btn full" data-act="bwsave">บันทึกน้ำหนักตัว</button></div></section>`;
@@ -401,7 +401,7 @@ function renderReport(){
     const max=Math.max(tp||0,...logged)*1.15||1,Wd=320,H=150,bw=28,gap=(Wd-20-7*bw)/6;
     let svg=`<svg class="chart" viewBox="0 0 ${Wd} ${H+22}" role="img" aria-label="โปรตีนต่อวันในสัปดาห์นี้">`;
     vals.forEach((v,i)=>{const x=10+i*(bw+gap),hh=v?v/max*H:0,hit=tp&&v>=tp;
-      svg+=`<rect x="${x}" y="${H-hh}" width="${bw}" height="${hh}" rx="5" fill="${hit?'var(--green)':'var(--blue)'}" opacity="${hit?1:.6}"/>`;
+      svg+=`<rect x="${x}" y="${H-hh}" width="${bw}" height="${hh}" rx="5" fill="${hit?'var(--green)':'var(--accent)'}" opacity="${hit?1:.6}"/>`;
       if(v)svg+=`<text x="${x+bw/2}" y="${H-hh-5}" text-anchor="middle" font-size="11" fill="var(--muted)">${Math.round(v)}</text>`;
       svg+=`<text x="${x+bw/2}" y="${H+16}" text-anchor="middle" font-size="12" fill="var(--muted)">${TH_SHORT[i]}</text>`});
     if(tp){const y=H-tp/max*H;svg+=`<line x1="4" x2="${Wd-4}" y1="${y}" y2="${y}" stroke="var(--ink)" stroke-dasharray="4 4" stroke-width="1.2"/><text x="${Wd-4}" y="${y-5}" text-anchor="end" font-size="11" fill="var(--ink)">เป้า ${tp} g</text>`}
@@ -512,9 +512,9 @@ function calcOut(){
   return `<section class="panel"><p class="muted" style="margin:0">พลังงานที่ควรกินต่อวัน (${r.G.l})</p>
     <p style="margin:2px 0 4px;font-size:40px;font-weight:700;line-height:1.1">${r.kcal.toLocaleString('th-TH')} <span style="font-size:18px;font-weight:500">kcal</span></p>
     <p class="muted" style="margin:0 0 12px;font-size:14px">${Math.abs(r.wk)<0.02?'น้ำหนักควรทรงตัว':`น้ำหนักจะ${r.wk>0?'ขึ้น':'ลง'}ประมาณ ${fmt(Math.abs(r.wk))} kg ต่อสัปดาห์`}</p>
-    <div style="display:flex;height:14px;border-radius:99px;overflow:hidden;margin:0 0 10px" role="img" aria-label="สัดส่วนพลังงาน โปรตีน ${pc(pk)}% คาร์บ ${pc(ck)}% ไขมัน ${pc(fk)}%"><i style="width:${pc(pk)}%;background:var(--blue)"></i><i style="width:${pc(ck)}%;background:var(--yellow)"></i><i style="width:${pc(fk)}%;background:var(--green)"></i></div>
+    <div style="display:flex;height:14px;border-radius:99px;overflow:hidden;margin:0 0 10px" role="img" aria-label="สัดส่วนพลังงาน โปรตีน ${pc(pk)}% คาร์บ ${pc(ck)}% ไขมัน ${pc(fk)}%"><i style="width:${pc(pk)}%;background:var(--accent)"></i><i style="width:${pc(ck)}%;background:var(--yellow)"></i><i style="width:${pc(fk)}%;background:var(--green)"></i></div>
     <div class="stats" style="margin:0">
-      <div class="stat"><b>${r.protein} g</b><span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--blue)"></i> โปรตีน ${pc(pk)}%</span></div>
+      <div class="stat"><b>${r.protein} g</b><span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent)"></i> โปรตีน ${pc(pk)}%</span></div>
       <div class="stat"><b>${r.carb} g</b><span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--yellow)"></i> คาร์บ ${pc(ck)}%</span></div>
       <div class="stat"><b>${r.fat} g</b><span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green)"></i> ไขมัน ${pc(fk)}%</span></div></div>
     <button type="button" class="btn" data-act="capply" style="width:100%;margin-top:12px">ใช้เป็นเป้าหมายในแอป</button></section>

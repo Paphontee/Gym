@@ -1,20 +1,20 @@
 :root{
-  --bg:#ECEFF2; --surface:#FFFFFF; --ink:#16202B; --muted:#5B6875; --line:#D3D9DF; --soft:#F5F7F9;
-  --blue:#1F5FBF; --yellow:#D9A514; --green:#2E8B57; --red:#C8372D;
-  --day:var(--blue);
+  --bg:#F3EFEB; --surface:#FFFFFF; --ink:#241B18; --muted:#6F6259; --line:#E0D6CF; --soft:#F8F4F1;
+  --accent:#D9531A; --blue:#1F5FBF; --yellow:#D9A514; --green:#2E8B57; --red:#C8372D;
+  --day:var(--accent);
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0F1419; --surface:#182028; --ink:#E8EDF2; --muted:#93A1AE; --line:#2A3540; --soft:#1E2833;
-    --blue:#4C8BE8; --yellow:#E9BE3C; --green:#4FB57E; --red:#E35E52;
+    --bg:#141011; --surface:#1F1819; --ink:#F2ECE8; --muted:#A89A91; --line:#352B2C; --soft:#261E1F;
+    --accent:#F47A3C; --blue:#4C8BE8; --yellow:#E9BE3C; --green:#4FB57E; --red:#E35E52;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0F1419; --surface:#182028; --ink:#E8EDF2; --muted:#93A1AE; --line:#2A3540; --soft:#1E2833;
-  --blue:#4C8BE8; --yellow:#E9BE3C; --green:#4FB57E; --red:#E35E52;
+  --bg:#141011; --surface:#1F1819; --ink:#F2ECE8; --muted:#A89A91; --line:#352B2C; --soft:#261E1F;
+  --accent:#F47A3C; --blue:#4C8BE8; --yellow:#E9BE3C; --green:#4FB57E; --red:#E35E52;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
@@ -135,7 +135,7 @@ nav.tabs button{font-size:13px}
 .f select option{color:#16202B}
 .pill{display:inline-block;font-size:13px;font-weight:600;padding:2px 10px;border-radius:99px;white-space:nowrap}
 .pill.up{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)}
-.pill.ok{background:color-mix(in srgb,var(--blue) 15%,transparent);color:var(--blue)}
+.pill.ok{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
 .pill.stall{background:color-mix(in srgb,var(--yellow) 25%,transparent);color:color-mix(in srgb,var(--yellow) 55%,var(--ink))}
 .pill.down{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
 .pill.na{background:var(--soft);color:var(--muted)}
