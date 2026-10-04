@@ -26,7 +26,7 @@ const DEFAULT_PROGRAM = {days:[
     {id:'f6',n:'Overhead triceps extension',alt:'',sets:3,lo:10,hi:12,rest:60,inc:1,unit:'kg'},
     {id:'f7',n:'Face pull',alt:'',sets:2,lo:15,hi:15,rest:60,inc:2.5,unit:'kg'}]}
 ], archive:{}};
-const COLORS=['--blue','--yellow','--green','--red','--purple','--teal','--orange'];
+const COLORS=['--accent','--teal','--green','--purple','--yellow','--red','--blue'];
 const TH_DAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TH_SHORT=['จ','อ','พ','พฤ','ศ','ส','อา'];
 const TH_MON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -287,7 +287,7 @@ function renderToday(){
     const arr=base.slice();while(arr.length<ex.sets)arr.push({w:null,r:null,done:false});
     h+=`<article class="ex"><div class="ex-head"><span class="ex-num" aria-hidden="true">${i+1}</span><div>
       <h3 class="ex-name"><button type="button" class="nm-btn" data-act="hist" data-ex="${esc(ex.id)}" aria-label="ดูประวัติ ${esc(ex.n)}">${esc(ex.n)}<span class="chev" aria-hidden="true">›</span></button> ${ex.alt?`<small>${esc(ex.alt)}</small>`:''}</h3>
-      <p class="ex-target">${ex.sets} × ${ex.lo===ex.hi?ex.lo:ex.lo+'–'+ex.hi}${sec?' วินาที':''}, พัก ${fmtRest(ex.rest)}${ex.unit==='kg'?`<button type="button" class="mini" data-act="plate" data-ex="${esc(ex.id)}" aria-label="คิดแผ่นน้ำหนัก ${esc(ex.n)}">แผ่น</button>`:''}</p>
+      <p class="ex-target">${ex.sets} × ${ex.lo===ex.hi?ex.lo:ex.lo+'–'+ex.hi}${sec?' วินาที':''}, พัก ${fmtRest(ex.rest)}${ex.unit==='kg'?`<button type="button" class="plbtn" data-act="plate" data-ex="${esc(ex.id)}" aria-label="คิดแผ่นน้ำหนัก ${esc(ex.n)}">แผ่น</button>`:''}</p>
       <p class="hint ${sg.up?'up':''}">${esc(sg.text)}</p></div></div><div class="sets">`;
     arr.forEach((s,j)=>{
       h+=`<div class="set ${s.done?'done':''} ${sec?'sec':''}"><span class="sn">${j+1}</span>
