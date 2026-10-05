@@ -1,6 +1,6 @@
 /* Service worker: makes the app work offline.
    Bump VERSION whenever you change any file, so phones pick up the update. */
-const VERSION = 'gymlog-v14';
+const VERSION = 'gymlog-v15';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png',
@@ -22,6 +22,15 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('message', e => { if (e.data === 'SKIP_WAITING') self.skipWaiting(); });
+
+// Rest-timer notification tapped: bring the app to the front
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const w = list.find(c => 'focus' in c);
+    return w ? w.focus() : self.clients.openWindow('./?view=today');
+  }));
+});
 
 self.addEventListener('fetch', e => {
   const req = e.request;

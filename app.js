@@ -26,7 +26,7 @@ const DEFAULT_PROGRAM = {days:[
     {id:'f6',n:'Overhead triceps extension',alt:'',sets:3,lo:10,hi:12,rest:60,inc:1,unit:'kg'},
     {id:'f7',n:'Face pull',alt:'',sets:2,lo:15,hi:15,rest:60,inc:2.5,unit:'kg'}]}
 ], archive:{}};
-const APP_VERSION='v14'; // keep in step with VERSION in sw.js
+const APP_VERSION='v15'; // keep in step with VERSION in sw.js
 const COLORS=['--accent','--teal','--green','--purple','--yellow','--red','--blue'];
 const TH_DAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TH_SHORT=['จ','อ','พ','พฤ','ศ','ส','อา'];
@@ -310,12 +310,32 @@ function goalInfo(g,EXM){
 }
 
 /* ---------- rest timer ---------- */
-const T={end:0,iv:null};
-function startTimer(sec,label){T.end=Date.now()+sec*1000;$('#tMsg').textContent=label;$('#timer').hidden=false;$('#timer').classList.remove('over');clearInterval(T.iv);T.iv=setInterval(tick,250);tick()}
+const T={end:0,iv:null,to:null,lock:null,fired:false,label:''};
+/* rest-timer alerts: vibration + beep in the app; a system notification when the app is in the background
+   (works while the browser keeps the page alive: Android does, iOS pauses web apps that are not on screen) */
+const restNotifyOn=()=>!!S.profile.restNotify,restSoundOn=()=>S.profile.restSound!==false,restWakeOn=()=>!!S.profile.restWake;
+const notifSupported=()=>'Notification' in window&&'serviceWorker' in navigator;
+const notifGranted=()=>notifSupported()&&Notification.permission==='granted';
+function startTimer(sec,label){T.end=Date.now()+sec*1000;T.label=label;T.fired=false;$('#tMsg').textContent=label;$('#timer').hidden=false;$('#timer').classList.remove('over');clearInterval(T.iv);T.iv=setInterval(tick,250);armTimer();primeAudio();wakeLock(true);tick()}
+function armTimer(){clearTimeout(T.to);T.to=setTimeout(tick,Math.max(0,T.end-Date.now())+20)}
 function tick(){const left=Math.round((T.end-Date.now())/1000),el=$('#timer');
-  if(left<=0){if(!el.classList.contains('over')){el.classList.add('over');$('#tMsg').textContent='ได้เวลาเซ็ตถัดไป';try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}$('#tTime').textContent='0:00';if(left<-30)stopTimer();return}
+  if(left<=0){if(!el.classList.contains('over')){el.classList.add('over');$('#tMsg').textContent='ได้เวลาเซ็ตถัดไป';restDone()}$('#tTime').textContent='0:00';if(left<-30)stopTimer();return}
   $('#tTime').textContent=Math.floor(left/60)+':'+pad(left%60)}
-function stopTimer(){clearInterval(T.iv);$('#timer').hidden=true}
+function restDone(){if(T.fired)return;T.fired=true;try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  if(restSoundOn())beep();
+  if(restNotifyOn()&&notifGranted()&&(document.visibilityState==='hidden'||!document.hasFocus()))notify('ได้เวลาเซ็ตถัดไป',T.label||'หมดเวลาพักแล้ว');
+  wakeLock(false)}
+function stopTimer(){clearInterval(T.iv);clearTimeout(T.to);$('#timer').hidden=true;wakeLock(false)}
+function notify(title,body){const o={body,tag:'rest',renotify:true,icon:'./icons/icon-192.png',badge:'./icons/icon-192.png',vibrate:[200,100,200],data:{url:'./?view=today'}};
+  navigator.serviceWorker.ready.then(r=>r.showNotification(title,o)).catch(()=>{try{new Notification(title,o)}catch(e){}})}
+let AC=null;
+function primeAudio(){if(!restSoundOn())return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
+function beep(){try{if(!AC)return;const t=AC.currentTime;[0,.25,.5].forEach(d=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=880;
+  g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.4,t+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d+.18);o.connect(g).connect(AC.destination);o.start(t+d);o.stop(t+d+.2)})}catch(e){}}
+async function wakeLock(on){try{
+  if(on){if(!restWakeOn()||!navigator.wakeLock||T.lock)return;T.lock=await navigator.wakeLock.request('screen');T.lock.addEventListener('release',()=>{T.lock=null})}
+  else if(T.lock){const l=T.lock;T.lock=null;await l.release()}}catch(e){T.lock=null}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!$('#timer').hidden){tick();if(T.end>Date.now())wakeLock(true)}});
 
 /* ---------- render ---------- */
 function setDayColor(day){document.documentElement.style.setProperty('--day',day?`var(${colorOf(day.id)})`:'var(--accent)')}
@@ -485,6 +505,10 @@ function renderReport(){
   } else h+=`<section class="panel"><h2>โปรตีนรายวัน</h2><p class="muted">บันทึกอาหารในแท็บอาหาร แล้วกราฟโปรตีนของสัปดาห์จะขึ้นที่นี่</p></section>`;
   return h;
 }
+function notifHelp(){const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),m=t=>`<p class="muted" style="font-size:13px;margin:0 0 6px 30px">${t}</p>`;
+  if(!notifSupported())return m(ios&&!isStandalone()?'iPhone: ต้องเพิ่มแอปไปยังหน้าจอโฮมก่อน (iOS 16.4 ขึ้นไป) แล้วเปิดจากไอคอนนั้น ตัวเลือกนี้ถึงจะใช้ได้':'เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน');
+  if(Notification.permission==='denied')return m('ถูกปิดไว้ในเครื่อง เปิดได้ที่ การตั้งค่า > การแจ้งเตือน > สมุดยิม');
+  return m(ios?'บน iPhone ตัวจับเวลาจะหยุดเมื่อแอปไม่อยู่บนจอ (ข้อจำกัดของ iOS กับเว็บแอป) แนะนำเปิด "กันหน้าจอดับ" และวางมือถือไว้ที่หน้าแอป ไอคอนบน Dynamic Island ทำได้เฉพาะแอปจาก App Store':'บน Android การแจ้งเตือนจะเด้งแม้สลับไปแอปอื่นหรือล็อกจอ')}
 function renderSettings(){
   setDayColor(activeDay());
   const bw=S.profile.bw??'',p=S.profile.protein??'',k=S.profile.kcal??'',auto=num(bw)?Math.round(num(bw)*1.6):null;
@@ -507,6 +531,12 @@ function renderSettings(){
     <label class="field"><span>น้ำหนักบาร์เปล่าที่ใช้ประจำ</span><span class="f"><input id="sbar" type="number" inputmode="decimal" step="0.5" min="0" value="${barKg()}"><span>kg</span></span></label>
     <span class="muted" style="display:block;font-size:14px;margin:0 0 4px">แผ่นที่ยิมมี (แตะเพื่อเปิด/ปิด)</span>
     <div class="chips" style="margin:0">${PLATE_ALL.map(p=>`<button type="button" class="chip" data-act="pltog" data-p="${p}" aria-pressed="${platesAvail().includes(p)}">${fmtP(p)} kg</button>`).join('')}</div></section>
+  <section class="panel"><h2>ตัวจับเวลาพัก</h2><p class="muted" style="font-size:14px">เมื่อหมดเวลาพัก แอปจะสั่นและส่งเสียง ถ้าเปิดแจ้งเตือนไว้และคุณสลับไปแอปอื่น จะเด้งเป็นการแจ้งเตือนของเครื่องแทน</p>
+    <label class="chk"><input type="checkbox" id="snotif" ${restNotifyOn()&&notifGranted()?'checked':''} ${notifSupported()&&Notification.permission!=='denied'?'':'disabled'}> แจ้งเตือนนอกแอปเมื่อหมดเวลา</label>
+    ${notifHelp()}
+    <label class="chk"><input type="checkbox" id="ssound" ${restSoundOn()?'checked':''}> เสียงเตือนเมื่อหมดเวลา</label>
+    <label class="chk"><input type="checkbox" id="swake" ${restWakeOn()?'checked':''} ${navigator.wakeLock?'':'disabled'}> กันหน้าจอดับระหว่างพัก${navigator.wakeLock?'':' (เครื่องนี้ไม่รองรับ)'}</label>
+    <button type="button" class="btn ghost" data-act="ntest" style="margin-top:8px">ทดสอบ: จับเวลา 5 วินาที</button></section>
   <section class="panel"><h2>เซ็ตวอร์มอัพ</h2><p class="muted" style="font-size:14px">ท่าแรกของวันและท่าหนัก (6–8 ครั้ง) จะมีเซ็ตวอร์มให้ก่อนเซ็ตจริง: 40% × 8, 60% × 5, 80% × 3 ของน้ำหนักที่จะยก (เพิ่ม 90% × 1 ถ้าเกิน 100 kg) ไม่นับเป็นเซ็ตจริงและไม่กระทบสถิติ เลือกเปิดปิดรายท่าได้ใน แก้ไขโปรแกรม</p>
     <label class="chk"><input type="checkbox" id="swarm" ${warmGlobal()?'checked':''}> แสดงเซ็ตวอร์มอัพในแท็บวันนี้</label></section>
   <section class="panel"><h2>RIR (เหลือแรงอีกกี่ครั้ง)</h2><p class="muted" style="font-size:14px">หลังกด ✓ จบเซ็ต แอปจะถามว่าถ้าฝืนต่อจะทำได้อีกกี่ครั้ง (0 = หมดแรงพอดี, 4+ = เบามาก) คำแนะนำน้ำหนักครั้งถัดไปจะฉลาดขึ้น: เหลือแรงเยอะจะให้เพิ่มมากขึ้นหรือเพิ่มแม้ยังไม่ครบจำนวนครั้ง หมดแรงและได้ไม่ถึงขั้นต่ำจะให้ลดน้ำหนัก</p>
@@ -984,6 +1014,11 @@ function onField(e){
   if(t.id==='qin'&&S.sheet&&S.sheet.type==='qty'){S.sheet.q=Math.max(0,num(t.value)||0);const el=$('#qtot');if(el)el.innerHTML=qtyLine(S.sheet);return}
   if(t.id==='plw'&&S.sheet&&S.sheet.type==='plate'){S.sheet.w=num(t.value);const el=$('#plres');if(el)el.innerHTML=plateResult(S.sheet);return}
   if(t.id==='sbar'){S.profile.barKg=num(t.value);save('p','me');return}
+  if(t.id==='snotif'){if(!t.checked){S.profile.restNotify=false;save('p','me');return}
+    if(notifGranted()){S.profile.restNotify=true;save('p','me');return}
+    Notification.requestPermission().then(p=>{S.profile.restNotify=p==='granted';save('p','me');render();if(p!=='granted')toast('ไม่ได้รับอนุญาต เปิดได้ในตั้งค่าเครื่อง');else toast('เปิดแจ้งเตือนแล้ว ลองกดปุ่มทดสอบดู')});return}
+  if(t.id==='ssound'){S.profile.restSound=t.checked;if(t.checked)primeAudio();save('p','me');return}
+  if(t.id==='swake'){S.profile.restWake=t.checked;if(!t.checked)wakeLock(false);save('p','me');return}
   if(t.id==='swarm'){S.profile.warmups=t.checked;save('p','me');return}
   if(t.id==='srir'){S.profile.rir=t.checked;save('p','me');return}
   if(t.id==='sdl'){S.profile.deloadWeeks=+t.value;save('p','me');return}
@@ -1038,7 +1073,9 @@ document.addEventListener('click',async e=>{
     if(arr[i]){const plan=warmPlan(ex,plateTarget(ex)),last=plan.every((_,k)=>arr[k]);
       startTimer(last?Math.min(90,Math.max(60,Math.round((ex.rest||90)/2))):45,last?'วอร์มครบแล้ว พักแล้วเริ่มเซ็ตจริง':'พักสั้นๆ แล้ววอร์มเซ็ตถัดไป')}
     save('s',sess.date);render();return}
-  if(a==='t30'){T.end=Math.max(T.end,Date.now())+30000;$('#timer').classList.remove('over');tick();return}
+  if(a==='t30'){T.end=Math.max(T.end,Date.now())+30000;T.fired=false;$('#timer').classList.remove('over');armTimer();wakeLock(true);tick();return}
+  if(a==='ntest'){const go=()=>{startTimer(5,'ทดสอบ: ลองสลับไปแอปอื่นหรือล็อกจอดู');toast('จะเตือนใน 5 วินาที')};
+    if(restNotifyOn()&&notifSupported()&&Notification.permission==='default')Notification.requestPermission().then(p=>{if(p!=='granted'){S.profile.restNotify=false;save('p','me');render()}go()});else go();return}
   if(a==='tstop'){stopTimer();return}
   // food
   const fk=S.foodDate||todayKey(),fday=()=>{if(!S.food[fk])S.food[fk]={date:fk,items:[],water:0};return S.food[fk]};
