@@ -26,7 +26,7 @@ const DEFAULT_PROGRAM = {days:[
     {id:'f6',n:'Overhead triceps extension',alt:'',sets:3,lo:10,hi:12,rest:60,inc:1,unit:'kg'},
     {id:'f7',n:'Face pull',alt:'',sets:2,lo:15,hi:15,rest:60,inc:2.5,unit:'kg'}]}
 ], archive:{}};
-const APP_VERSION='v13'; // keep in step with VERSION in sw.js
+const APP_VERSION='v14'; // keep in step with VERSION in sw.js
 const COLORS=['--accent','--teal','--green','--purple','--yellow','--red','--blue'];
 const TH_DAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TH_SHORT=['จ','อ','พ','พฤ','ศ','ส','อา'];
@@ -35,10 +35,20 @@ const PRESETS=[
   {name:'ไข่ไก่ 1 ฟอง',p:6,k:75,c:0.5,f:5},{name:'อกไก่สุก 100 g',p:31,k:165,c:0,f:3.6},{name:'นมจืด 200 ml',p:7,k:130,c:10,f:7},
   {name:'เวย์ 1 สกู๊ป',p:24,k:120,c:3,f:1.5},{name:'ข้าวสวย 1 ทัพพี',p:2,k:80,c:17,f:0.2},{name:'กะเพราไก่ไข่ดาว',p:28,k:600,c:65,f:25},
   {name:'นมถั่วเหลือง 250 ml',p:8,k:120,c:10,f:4},{name:'กล้วยหอม 1 ลูก',p:1.3,k:105,c:27,f:0.4}];
-/* user's own quick-add menus live in profile.presets (synced with the profile); hidden built-ins in profile.hiddenPresets */
+/* Quick-add row = profile.quick, an ordered list of keys: 'n:<name>' for a catalog dish (built-in or guide), 'c:<id>' for the
+   user's own menu (profile.presets). Both live in the profile, so they sync with Drive. */
 const customPresets=()=>Array.isArray(S.profile.presets)?S.profile.presets:[];
-function allPresets(){const hide=new Set(S.profile.hiddenPresets||[]);
-  return customPresets().map(x=>Object.assign({src:'c'},x)).concat(PRESETS.filter(x=>!hide.has(x.name)).map(x=>Object.assign({src:'b'},x)))}
+function catalog(){if(catalog._c)return catalog._c;const seen=new Set(),out=[];
+  const add=(group,x)=>{if(seen.has(x.name))return;seen.add(x.name);out.push(Object.assign({src:'b',key:'n:'+x.name,group},x))};
+  PRESETS.forEach(x=>add('พื้นฐาน',x));GUIDE.forEach(g=>g.items.forEach(x=>add(g.h,x)));return catalog._c=out}
+function quickKeys(){
+  if(!Array.isArray(S.profile.quick)){const hide=new Set(S.profile.hiddenPresets||[]); // first run, or migrate from v12 hidden list
+    S.profile.quick=customPresets().map(x=>'c:'+x.id).concat(PRESETS.filter(x=>!hide.has(x.name)).map(x=>'n:'+x.name));delete S.profile.hiddenPresets}
+  return S.profile.quick}
+function itemByKey(k){if(k.startsWith('c:')){const x=customPresets().find(p=>p.id===k.slice(2));return x?Object.assign({src:'c',key:k},x):null}return catalog().find(x=>x.key===k)||null}
+const allPresets=()=>quickKeys().map(itemByKey).filter(Boolean);
+const inQuick=k=>quickKeys().includes(k);
+function toggleQuick(k){const q=quickKeys(),i=q.indexOf(k);if(i<0)q.push(k);else q.splice(i,1);save('p','me');return i<0}
 /* rough reference values for eating out (Thai dishes, per usual serving) */
 const GUIDE=[
   {h:'ข้าวจานเดียว (ร้านตามสั่ง, ข้าวประมาณ 2 ทัพพี)',items:[
@@ -380,7 +390,7 @@ function renderFood(){
     <label class="f"><input id="ff" type="number" inputmode="decimal" min="0" placeholder="0" aria-label="ไขมัน กรัม"><span>g ไขมัน</span></label>
     <button type="button" class="btn full" data-act="fadd">เพิ่มอาหาร</button></div>
     <p class="muted" style="margin:12px 0 0;font-size:14px">กดเพิ่มเร็ว (ค่าประมาณ) กดเมนูแล้วเลือกจำนวนได้ เช่น ไข่ 10 ฟอง</p>
-    <div class="presets">${allPresets().map((x,i)=>`<button type="button" class="chip${x.src==='c'?' mine':''}" data-act="preset" data-i="${i}">${esc(x.name)}<small>${fmt(x.k)} kcal, โปรตีน ${fmt(x.p)} g</small></button>`).join('')}<button type="button" class="chip add" data-act="pnew">+ เมนูใหม่<small>เพิ่มเมนูของคุณเอง</small></button></div>
+    <div class="presets">${allPresets().map((x,i)=>`<button type="button" class="chip${x.src==='c'?' mine':''}" data-act="preset" data-i="${i}">${esc(x.name)}<small>${fmt(x.k)} kcal, โปรตีน ${fmt(x.p)} g</small></button>`).join('')}<button type="button" class="chip add" data-act="pmanage">จัดการเมนู<small>เพิ่ม/ลบเมนูกดเร็ว</small></button></div>
     <button type="button" class="link" data-act="guide" style="margin-top:6px">กินข้างนอก ไม่รู้ว่าเท่าไหร่? ดูวิธีกะคร่าวๆ และเมนูยอดฮิต</button></section>
   <section class="panel"><h2>กินไปแล้ว</h2>${day.items.length?`<ul class="items">${day.items.map(it=>`<li><span>${esc(it.name||'อาหาร')}<br><span class="muted" style="font-size:14px">${fmt(it.k)} kcal, P ${fmt(it.p)} g${it.c!=null?`, C ${fmt(it.c)} g`:''}${it.f!=null?`, F ${fmt(it.f)} g`:''}</span></span><button type="button" class="x" data-act="fdel" data-id="${esc(it.id)}" aria-label="ลบ ${esc(it.name||'อาหาร')}">×</button></li>`).join('')}</ul>`:`<p class="muted">ยังไม่มีรายการ เพิ่มมื้อแรกจากด้านบนได้เลย</p>`}</section>`;
 }
@@ -915,9 +925,8 @@ function renderQty(){
   <p class="qtot" id="qtot">${qtyLine(st)}</p>
   <button type="button" class="btn" style="width:100%" data-act="qadd">เพิ่มลงวันนี้</button>
   <div class="row" style="margin-top:10px;justify-content:center">
-    ${it.src==='c'?`<button type="button" class="btn ghost" data-act="pedit" data-id="${esc(it.id)}">แก้ไขเมนู</button><button type="button" class="btn ghost" data-act="pdel" data-id="${esc(it.id)}">ลบเมนู</button>`:''}
-    ${it.src==='b'?`<button type="button" class="btn ghost" data-act="phide">ซ่อนเมนูนี้</button>`:''}
-    ${it.src==='g'?`<button type="button" class="btn ghost" data-act="psavefrom">บันทึกเป็นเมนูกดเพิ่มเร็ว</button>`:''}
+    <button type="button" class="btn ghost" data-act="ptog" data-key="${esc(it.key)}">${inQuick(it.key)?'เอาออกจากกดเพิ่มเร็ว':'ใส่ในกดเพิ่มเร็ว'}</button>
+    ${it.src==='c'?`<button type="button" class="btn ghost" data-act="pedit" data-id="${esc(it.id)}">แก้ไขเมนู</button>`:''}
   </div>`}
 function renderPresetEdit(){
   const st=S.sheet,x=st.item||{},f=(id,ph,v,lbl,unit,mode)=>`<label class="f${unit?'':' full'}"><input id="${id}" type="${mode?'number':'text'}" ${mode?`inputmode="${mode}" min="0"`:''} placeholder="${ph}" value="${v==null?'':esc(v)}" aria-label="${lbl}">${unit?`<span>${unit}</span>`:''}</label>`;
@@ -926,8 +935,23 @@ function renderPresetEdit(){
   <div class="form">${f('pn','ชื่อเมนู เช่น ข้าวกล่อง 7-11',x.name,'ชื่อเมนู')}
     ${f('pp','0',x.p,'โปรตีน กรัม','g โปรตีน','decimal')}${f('pk','0',x.k,'พลังงาน kcal','kcal','numeric')}
     ${f('pc','0',x.c,'คาร์บ กรัม','g คาร์บ','decimal')}${f('pf','0',x.f,'ไขมัน กรัม','g ไขมัน','decimal')}
-    <button type="button" class="btn full" data-act="psave">${st.id?'บันทึก':'เพิ่มเมนู'}</button></div>
-  ${!st.id&&(S.profile.hiddenPresets||[]).length?`<p class="note" style="margin-top:12px">มีเมนูที่ซ่อนไว้ ${S.profile.hiddenPresets.length} รายการ <button type="button" class="link" data-act="punhide">แสดงทั้งหมดอีกครั้ง</button></p>`:''}`}
+    <button type="button" class="btn full" data-act="psave">${st.id?'บันทึก':'เพิ่มเมนู'}</button>
+    ${st.id?`<button type="button" class="btn danger full" data-act="pdel" data-id="${esc(st.id)}">ลบเมนูนี้</button>`:''}</div>`}
+function renderManage(){
+  const st=S.sheet;
+  return `<div class="sh-head"><h2>จัดการเมนูกดเพิ่มเร็ว</h2><button type="button" class="x" data-act="sheetclose" aria-label="ปิด">×</button></div>
+  <p class="note">กด "+ ใส่" เพื่อให้เมนูไปอยู่ในแถวกดเพิ่มเร็ว กดอีกครั้งเพื่อเอาออก ตอนนี้มี <b id="pcnt">${allPresets().length}</b> เมนู</p>
+  <button type="button" class="btn" style="width:100%" data-act="pnew">+ สร้างเมนูเอง</button>
+  <label class="f" style="margin-top:10px"><input id="pq" type="search" placeholder="ค้นหาเมนู เช่น ซูชิ" value="${esc(st.q||'')}" aria-label="ค้นหาเมนู"></label>
+  <div id="plist">${manageList()}</div>`}
+function manageList(){
+  const q=(S.sheet.q||'').trim().toLowerCase();
+  const row=x=>{const on=inQuick(x.key);return `<li><span>${esc(x.name)}<br><small class="muted">${macroLine(x)}</small></span><span class="row" style="flex:none;gap:4px">${x.src==='c'?`<button type="button" class="chip" data-act="pedit" data-id="${esc(x.id)}" aria-label="แก้ไข ${esc(x.name)}">แก้ไข</button>`:''}<button type="button" class="chip" data-act="ptog" data-key="${esc(x.key)}" aria-pressed="${on}">${on?'✓ อยู่ในแถว':'+ ใส่'}</button></span></li>`};
+  const groups=[['เมนูของฉัน',customPresets().map(x=>Object.assign({src:'c',key:'c:'+x.id},x))]];
+  const byG={};catalog().forEach(x=>(byG[x.group]=byG[x.group]||[]).push(x));Object.keys(byG).forEach(g=>groups.push([g,byG[g]]));
+  let h='';groups.forEach(([g,items])=>{const it=q?items.filter(x=>x.name.toLowerCase().includes(q)):items;if(!it.length&&(q||g!=='เมนูของฉัน'))return;
+    h+=`<p class="gh">${esc(g)}</p>${it.length?`<ul class="items gd">${it.map(row).join('')}</ul>`:`<p class="muted" style="font-size:14px;margin:4px 0 0">ยังไม่มี กด "+ สร้างเมนูเอง" ด้านบน หรือกดเมนูไหนก็ได้ที่กินแล้วบันทึกไว้</p>`}`});
+  return h||`<p class="muted" style="margin-top:12px">ไม่พบเมนูที่ค้นหา ลองสร้างเมนูเองด้านบน</p>`}
 function renderGuide(){
   const li=x=>`<li><span>${esc(x.name)}<br><small class="muted">${macroLine(x)}</small></span><button type="button" class="chip" data-act="gpick" data-n="${esc(x.name)}" data-p="${x.p}" data-k="${x.k}" data-c="${x.c}" data-f="${x.f}">เพิ่ม</button></li>`;
   return `<div class="sh-head"><h2>กะสารอาหารคร่าวๆ</h2><button type="button" class="x" data-act="sheetclose" aria-label="ปิด">×</button></div>
@@ -956,6 +980,7 @@ function renderGuide(){
 /* ---------- events ---------- */
 function onField(e){
   const t=e.target;
+  if(t.id==='pq'&&S.sheet&&S.sheet.type==='pmanage'){S.sheet.q=t.value;const el=$('#plist');if(el)el.innerHTML=manageList();return}
   if(t.id==='qin'&&S.sheet&&S.sheet.type==='qty'){S.sheet.q=Math.max(0,num(t.value)||0);const el=$('#qtot');if(el)el.innerHTML=qtyLine(S.sheet);return}
   if(t.id==='plw'&&S.sheet&&S.sheet.type==='plate'){S.sheet.w=num(t.value);const el=$('#plres');if(el)el.innerHTML=plateResult(S.sheet);return}
   if(t.id==='sbar'){S.profile.barKg=num(t.value);save('p','me');return}
@@ -1022,25 +1047,28 @@ document.addEventListener('click',async e=>{
     if(!k&&(p||c||f))k=Math.round(p*4+(c||0)*4+(f||0)*9);
     if(!p&&!k){toast('ใส่พลังงานหรือสารอาหารอย่างน้อยหนึ่งช่อง');$('#fk').focus();return}addItem(name||'อาหาร',p,k,c,f);toast('เพิ่มแล้ว');return}
   if(a==='preset'){const x=allPresets()[+b.dataset.i];if(x)openQty(x);return}
-  if(a==='gpick'){const d=b.dataset;openQty({src:'g',name:d.n,p:num(d.p),k:num(d.k),c:num(d.c),f:num(d.f)});return}
+  if(a==='gpick'){const d=b.dataset;openQty(catalog().find(x=>x.name===d.n)||{src:'g',key:'n:'+d.n,name:d.n,p:num(d.p),k:num(d.k),c:num(d.c),f:num(d.f)});return}
+  if(a==='pmanage'){S.sheet={type:'pmanage',q:''};openSheet(renderManage());return}
+  if(a==='ptog'){const on=toggleQuick(b.dataset.key);render();const st=S.sheet;
+    if(st&&st.type==='pmanage'){const el=$('#plist');if(el)el.innerHTML=manageList();const c=$('#pcnt');if(c)c.textContent=allPresets().length}
+    else if(st&&st.type==='qty')openSheet(renderQty());
+    toast(on?'ใส่ในแถวกดเพิ่มเร็วแล้ว':'เอาออกจากแถวกดเพิ่มเร็วแล้ว');return}
   if(a==='q-'||a==='q+'||a==='qset'){const st=S.sheet;if(!st||st.type!=='qty')return;
     st.q=a==='qset'?num(b.dataset.q):a==='q+'?(st.q<1?1:st.q+1):(st.q>1?st.q-1:0.5);openSheet(renderQty());return}
   if(a==='qadd'){const st=S.sheet;if(!st||st.type!=='qty')return;const q=st.q||0;if(!q){toast('ใส่จำนวนก่อน');return}
     const t=qtyTotals(st),nm=q===1?st.item.name:`${st.item.name} ×${fmt(q)}`;closeSheet();addItem(nm,t.p,t.k,t.c,t.f);toast(`เพิ่ม ${nm} แล้ว`);return}
-  if(a==='pnew'){const v=id=>{const el=$(id);return el?el.value:''};
-    S.sheet={type:'pedit',id:null,item:{name:v('#fn').trim(),p:num(v('#fp')),k:num(v('#fk')),c:num(v('#fc')),f:num(v('#ff'))}};openSheet(renderPresetEdit());return}
-  if(a==='pedit'){const x=customPresets().find(p=>p.id===b.dataset.id);if(!x)return;S.sheet={type:'pedit',id:x.id,item:clone(x)};openSheet(renderPresetEdit());return}
-  if(a==='psavefrom'){const st=S.sheet;if(!st||st.type!=='qty')return;const x=Object.assign({id:uid('m')},st.item);delete x.src;
-    if(!Array.isArray(S.profile.presets))S.profile.presets=[];S.profile.presets.push(x);save('p','me');closeSheet();render();toast(`บันทึก ${x.name} เป็นเมนูกดเพิ่มเร็วแล้ว`);return}
+  const backTo=st=>{if(st.back==='pmanage'){S.sheet={type:'pmanage',q:''};openSheet(renderManage())}else closeSheet()};
+  if(a==='pnew'){const v=id=>{const el=$(id);return el?el.value:''},back=S.sheet&&S.sheet.type==='pmanage'?'pmanage':null;
+    S.sheet={type:'pedit',id:null,back,item:{name:v('#fn').trim(),p:num(v('#fp')),k:num(v('#fk')),c:num(v('#fc')),f:num(v('#ff'))}};openSheet(renderPresetEdit());return}
+  if(a==='pedit'){const x=customPresets().find(p=>p.id===b.dataset.id);if(!x)return;const back=S.sheet&&S.sheet.type==='pmanage'?'pmanage':null;S.sheet={type:'pedit',id:x.id,back,item:clone(x)};openSheet(renderPresetEdit());return}
   if(a==='psave'){const st=S.sheet;if(!st||st.type!=='pedit')return;const name=$('#pn').value.trim(),p=num($('#pp').value)||0,c=num($('#pc').value),f=num($('#pf').value);let k=num($('#pk').value)||0;
     if(!k&&(p||c||f))k=Math.round(p*4+(c||0)*4+(f||0)*9);
     if(!name){toast('ใส่ชื่อเมนูก่อน');$('#pn').focus();return}if(!p&&!k){toast('ใส่พลังงานหรือสารอาหารอย่างน้อยหนึ่งช่อง');$('#pk').focus();return}
     if(!Array.isArray(S.profile.presets))S.profile.presets=[];
-    if(st.id){const x=S.profile.presets.find(p=>p.id===st.id);if(x)Object.assign(x,{name,p,k,c,f})}else S.profile.presets.push({id:uid('m'),name,p,k,c,f});
-    save('p','me');closeSheet();render();toast(st.id?'บันทึกเมนูแล้ว':`เพิ่มเมนู ${name} แล้ว`);return}
-  if(a==='pdel'){if(!confirm('ลบเมนูนี้ออกจากกดเพิ่มเร็วไหม (รายการที่กินไปแล้วยังอยู่)'))return;S.profile.presets=customPresets().filter(p=>p.id!==b.dataset.id);save('p','me');closeSheet();render();toast('ลบเมนูแล้ว');return}
-  if(a==='phide'){const st=S.sheet;if(!st||st.type!=='qty')return;if(!Array.isArray(S.profile.hiddenPresets))S.profile.hiddenPresets=[];S.profile.hiddenPresets.push(st.item.name);save('p','me');closeSheet();render();toast('ซ่อนแล้ว กด + เมนูใหม่ เพื่อแสดงอีกครั้ง');return}
-  if(a==='punhide'){S.profile.hiddenPresets=[];save('p','me');closeSheet();render();toast('แสดงเมนูทั้งหมดแล้ว');return}
+    if(st.id){const x=S.profile.presets.find(p=>p.id===st.id);if(x)Object.assign(x,{name,p,k,c,f})}else{const id=uid('m');S.profile.presets.push({id,name,p,k,c,f});quickKeys().push('c:'+id)}
+    save('p','me');backTo(st);render();toast(st.id?'บันทึกเมนูแล้ว':`เพิ่มเมนู ${name} ในแถวกดเพิ่มเร็วแล้ว`);return}
+  if(a==='pdel'){const st=S.sheet;if(!confirm('ลบเมนูนี้ไหม (รายการที่กินไปแล้วยังอยู่)'))return;const id=b.dataset.id;
+    S.profile.presets=customPresets().filter(p=>p.id!==id);S.profile.quick=quickKeys().filter(k=>k!=='c:'+id);save('p','me');backTo(st||{});render();toast('ลบเมนูแล้ว');return}
   if(a==='guide'){S.sheet={type:'guide'};openSheet(renderGuide());return}
   if(a==='fdel'){const d=fday();d.items=d.items.filter(i=>i.id!==b.dataset.id);save('f',fk);render();return}
   if(a==='w+'||a==='w-'){const d=fday();d.water=Math.max(0,(d.water||0)+(a==='w+'?1:-1));save('f',fk);render();return}

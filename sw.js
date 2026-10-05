@@ -1,6 +1,6 @@
 /* Service worker: makes the app work offline.
    Bump VERSION whenever you change any file, so phones pick up the update. */
-const VERSION = 'gymlog-v13';
+const VERSION = 'gymlog-v14';
 const SHELL = [
   './', './index.html', './styles.css', './app.js', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png',
