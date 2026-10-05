@@ -26,7 +26,7 @@ const DEFAULT_PROGRAM = {days:[
     {id:'f6',n:'Overhead triceps extension',alt:'',sets:3,lo:10,hi:12,rest:60,inc:1,unit:'kg'},
     {id:'f7',n:'Face pull',alt:'',sets:2,lo:15,hi:15,rest:60,inc:2.5,unit:'kg'}]}
 ], archive:{}};
-const APP_VERSION='v11'; // keep in step with VERSION in sw.js
+const APP_VERSION='v12'; // keep in step with VERSION in sw.js
 const COLORS=['--accent','--teal','--green','--purple','--yellow','--red','--blue'];
 const TH_DAY=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TH_SHORT=['จ','อ','พ','พฤ','ศ','ส','อา'];
@@ -35,6 +35,32 @@ const PRESETS=[
   {name:'ไข่ไก่ 1 ฟอง',p:6,k:75,c:0.5,f:5},{name:'อกไก่สุก 100 g',p:31,k:165,c:0,f:3.6},{name:'นมจืด 200 ml',p:7,k:130,c:10,f:7},
   {name:'เวย์ 1 สกู๊ป',p:24,k:120,c:3,f:1.5},{name:'ข้าวสวย 1 ทัพพี',p:2,k:80,c:17,f:0.2},{name:'กะเพราไก่ไข่ดาว',p:28,k:600,c:65,f:25},
   {name:'นมถั่วเหลือง 250 ml',p:8,k:120,c:10,f:4},{name:'กล้วยหอม 1 ลูก',p:1.3,k:105,c:27,f:0.4}];
+/* user's own quick-add menus live in profile.presets (synced with the profile); hidden built-ins in profile.hiddenPresets */
+const customPresets=()=>Array.isArray(S.profile.presets)?S.profile.presets:[];
+function allPresets(){const hide=new Set(S.profile.hiddenPresets||[]);
+  return customPresets().map(x=>Object.assign({src:'c'},x)).concat(PRESETS.filter(x=>!hide.has(x.name)).map(x=>Object.assign({src:'b'},x)))}
+/* rough reference values for eating out (Thai dishes, per usual serving) */
+const GUIDE=[
+  {h:'ข้าวจานเดียว (ร้านตามสั่ง, ข้าวประมาณ 2 ทัพพี)',items:[
+    {name:'ข้าวราดแกง 1 อย่าง',p:20,k:500,c:60,f:18},{name:'ข้าวราดแกง 2 อย่าง',p:28,k:700,c:70,f:30},
+    {name:'ข้าวกะเพราหมูสับ',p:25,k:550,c:60,f:22},{name:'ข้าวผัดหมู/ไก่',p:18,k:550,c:70,f:20},
+    {name:'ข้าวมันไก่',p:28,k:650,c:70,f:28},{name:'ข้าวหมูแดง',p:25,k:550,c:70,f:18},{name:'ข้าวขาหมู',p:25,k:690,c:65,f:35},
+    {name:'ข้าวไข่เจียว',p:14,k:520,c:60,f:24},{name:'ผัดไทยกุ้งสด',p:18,k:550,c:70,f:20},{name:'ผัดซีอิ๊วหมู',p:18,k:580,c:70,f:24},{name:'โรตีใส่ไข่',p:9,k:420,c:50,f:20}]},
+  {h:'เส้นและซุป',items:[
+    {name:'ก๋วยเตี๋ยวน้ำ หมู/ไก่ 1 ชาม',p:18,k:380,c:45,f:10},{name:'ก๋วยเตี๋ยวแห้ง 1 ชาม',p:18,k:450,c:50,f:18},
+    {name:'บะหมี่เกี๊ยวหมูแดง',p:22,k:450,c:50,f:15},{name:'โจ๊กหมู 1 ถ้วย',p:12,k:250,c:35,f:6},
+    {name:'ข้าวต้มปลา 1 ชาม',p:18,k:250,c:35,f:4},{name:'ต้มยำกุ้งน้ำใส 1 ถ้วย',p:12,k:100,c:6,f:3},{name:'มาม่าต้ม 1 ซอง',p:7,k:300,c:40,f:13}]},
+  {h:'กับข้าว ของกินเล่น (โปรตีนสูง)',items:[
+    {name:'ไก่ย่าง 1/4 ตัว',p:30,k:300,c:0,f:18},{name:'คอหมูย่าง 100 g',p:20,k:300,c:2,f:24},{name:'หมูปิ้ง 1 ไม้',p:6,k:100,c:3,f:7},
+    {name:'ลูกชิ้นปิ้ง 1 ไม้',p:6,k:90,c:6,f:4},{name:'ไก่ทอด 1 ชิ้น (น่อง)',p:14,k:200,c:6,f:13},{name:'ปลาทูทอด 1 ตัว',p:15,k:120,c:0,f:6},
+    {name:'ไข่เจียว 1 ฟอง (ร้าน)',p:7,k:180,c:1,f:16},{name:'ไข่ดาว 1 ฟอง',p:6,k:120,c:0.5,f:10},{name:'ไข่ต้ม 1 ฟอง',p:6,k:75,c:0.5,f:5},
+    {name:'อกไก่นึ่ง 7-11 (1 แพ็ก)',p:25,k:120,c:1,f:2},{name:'ส้มตำไทย 1 จาน',p:4,k:130,c:22,f:4},{name:'ซูชิ 1 คำ',p:2,k:45,c:8,f:0.5}]},
+  {h:'ข้าว แป้ง ผลไม้',items:[
+    {name:'ข้าวสวย 1 ทัพพี',p:2,k:80,c:17,f:0.2},{name:'ข้าวสวย 1 จานร้าน (~2.5 ทัพพี)',p:5,k:230,c:50,f:0.5},{name:'ข้าวเหนียว 1 ห่อเล็ก',p:4,k:235,c:52,f:0.5},
+    {name:'ขนมปัง 1 แผ่น',p:3,k:80,c:14,f:1},{name:'ผลไม้หั่น 1 ถุง (~200 g)',p:1,k:90,c:22,f:0.3},{name:'ข้าวเหนียวมะม่วง',p:6,k:450,c:85,f:10}]},
+  {h:'เครื่องดื่ม',items:[
+    {name:'ชาเย็น/กาแฟเย็น แก้วปกติ',p:3,k:250,c:40,f:8},{name:'ชานมไข่มุก 500 ml',p:4,k:400,c:70,f:10},{name:'น้ำอัดลม 325 ml',p:0,k:140,c:35,f:0},
+    {name:'อเมริกาโน่ไม่หวาน',p:0,k:5,c:0,f:0},{name:'นมจืด 200 ml',p:7,k:130,c:10,f:7},{name:'เบียร์ 1 กระป๋อง 330 ml',p:1,k:150,c:12,f:0}]}];
 const ACT=[{v:1.2,l:'นั่งทำงานหรือเรียน แทบไม่ได้ออกกำลัง'},{v:1.375,l:'ออกกำลัง 1–3 วันต่อสัปดาห์'},{v:1.55,l:'ออกกำลัง 3–5 วันต่อสัปดาห์ หรือเดินเยอะทุกวัน'},{v:1.725,l:'ออกกำลังหนัก 6–7 วันต่อสัปดาห์'},{v:1.9,l:'งานใช้แรงหนัก และซ้อมทุกวัน'}];
 const GOALS={cut:{l:'ลดไขมัน',adj:-0.15,p:2.2,d:'กินน้อยกว่าที่ใช้ประมาณ 15% โปรตีนสูงเพื่อรักษากล้าม'},maint:{l:'คงน้ำหนัก',adj:0,p:2.0,d:'กินเท่าที่ใช้ เหมาะกับการสร้างกล้ามไปพร้อมลดไขมันช้าๆ (recomposition)'},lean:{l:'เพิ่มกล้ามแบบลีน',adj:0.10,p:1.8,d:'กินเกินประมาณ 10% ไขมันขึ้นน้อย'},bulk:{l:'เพิ่มกล้ามเร็ว',adj:0.15,p:1.8,d:'กินเกินประมาณ 15% น้ำหนักขึ้นเร็ว แต่ไขมันขึ้นตามมากกว่า'}};
 
@@ -337,8 +363,9 @@ function renderFood(){
     <label class="f"><input id="fc" type="number" inputmode="decimal" min="0" placeholder="0" aria-label="คาร์บ กรัม"><span>g คาร์บ</span></label>
     <label class="f"><input id="ff" type="number" inputmode="decimal" min="0" placeholder="0" aria-label="ไขมัน กรัม"><span>g ไขมัน</span></label>
     <button type="button" class="btn full" data-act="fadd">เพิ่มอาหาร</button></div>
-    <p class="muted" style="margin:12px 0 0;font-size:14px">กดเพิ่มเร็ว (ค่าประมาณ)</p>
-    <div class="presets">${PRESETS.map((x,i)=>`<button type="button" class="chip" data-act="preset" data-i="${i}">${esc(x.name)}<small>${x.k} kcal, โปรตีน ${x.p} g</small></button>`).join('')}</div></section>
+    <p class="muted" style="margin:12px 0 0;font-size:14px">กดเพิ่มเร็ว (ค่าประมาณ) กดเมนูแล้วเลือกจำนวนได้ เช่น ไข่ 10 ฟอง</p>
+    <div class="presets">${allPresets().map((x,i)=>`<button type="button" class="chip${x.src==='c'?' mine':''}" data-act="preset" data-i="${i}">${esc(x.name)}<small>${fmt(x.k)} kcal, โปรตีน ${fmt(x.p)} g</small></button>`).join('')}<button type="button" class="chip add" data-act="pnew">+ เมนูใหม่<small>เพิ่มเมนูของคุณเอง</small></button></div>
+    <button type="button" class="link" data-act="guide" style="margin-top:6px">กินข้างนอก ไม่รู้ว่าเท่าไหร่? ดูวิธีกะคร่าวๆ และเมนูยอดฮิต</button></section>
   <section class="panel"><h2>กินไปแล้ว</h2>${day.items.length?`<ul class="items">${day.items.map(it=>`<li><span>${esc(it.name||'อาหาร')}<br><span class="muted" style="font-size:14px">${fmt(it.k)} kcal, P ${fmt(it.p)} g${it.c!=null?`, C ${fmt(it.c)} g`:''}${it.f!=null?`, F ${fmt(it.f)} g`:''}</span></span><button type="button" class="x" data-act="fdel" data-id="${esc(it.id)}" aria-label="ลบ ${esc(it.name||'อาหาร')}">×</button></li>`).join('')}</ul>`:`<p class="muted">ยังไม่มีรายการ เพิ่มมื้อแรกจากด้านบนได้เลย</p>`}</section>`;
 }
 function renderProgress(){
@@ -859,9 +886,60 @@ if('serviceWorker' in navigator){
   });
 }
 
+/* ---------- food sheets: quantity, own menus, estimation guide ---------- */
+const macroLine=o=>`${fmt(o.k)} kcal · P ${fmt(o.p||0)} g${o.c!=null?` · C ${fmt(o.c)} g`:''}${o.f!=null?` · F ${fmt(o.f)} g`:''}`;
+function qtyTotals(st){const q=st.q||0,it=st.item,m=v=>v==null?null:Math.round(v*q*10)/10;return {p:m(it.p)||0,k:Math.round((it.k||0)*q),c:m(it.c),f:m(it.f)}}
+const qtyLine=st=>{const t=qtyTotals(st);return `รวม <b>${fmt(t.k)} kcal</b> · โปรตีน <b>${fmt(t.p)} g</b>${t.c!=null?` · คาร์บ ${fmt(t.c)} g`:''}${t.f!=null?` · ไขมัน ${fmt(t.f)} g`:''}`};
+function openQty(item){S.sheet={type:'qty',item,q:1};openSheet(renderQty())}
+function renderQty(){
+  const st=S.sheet,it=st.item,q=st.q;
+  return `<div class="sh-head"><h2>${esc(it.name)}<br><small class="muted" style="font-weight:400;font-size:14px">ต่อ 1 หน่วย: ${macroLine(it)}</small></h2><button type="button" class="x" data-act="sheetclose" aria-label="ปิด">×</button></div>
+  <div class="qty"><button type="button" class="round" data-act="q-" aria-label="ลดจำนวน">−</button><input id="qin" type="number" inputmode="decimal" min="0" step="0.5" value="${q}" aria-label="จำนวน"><button type="button" class="round" data-act="q+" aria-label="เพิ่มจำนวน">+</button></div>
+  <div class="chips qchips">${[0.5,1,2,3,5,10].map(v=>`<button type="button" class="chip" data-act="qset" data-q="${v}" aria-pressed="${q===v}">×${v}</button>`).join('')}</div>
+  <p class="qtot" id="qtot">${qtyLine(st)}</p>
+  <button type="button" class="btn" style="width:100%" data-act="qadd">เพิ่มลงวันนี้</button>
+  <div class="row" style="margin-top:10px;justify-content:center">
+    ${it.src==='c'?`<button type="button" class="btn ghost" data-act="pedit" data-id="${esc(it.id)}">แก้ไขเมนู</button><button type="button" class="btn ghost" data-act="pdel" data-id="${esc(it.id)}">ลบเมนู</button>`:''}
+    ${it.src==='b'?`<button type="button" class="btn ghost" data-act="phide">ซ่อนเมนูนี้</button>`:''}
+    ${it.src==='g'?`<button type="button" class="btn ghost" data-act="psavefrom">บันทึกเป็นเมนูกดเพิ่มเร็ว</button>`:''}
+  </div>`}
+function renderPresetEdit(){
+  const st=S.sheet,x=st.item||{},f=(id,ph,v,lbl,unit,mode)=>`<label class="f${unit?'':' full'}"><input id="${id}" type="${mode?'number':'text'}" ${mode?`inputmode="${mode}" min="0"`:''} placeholder="${ph}" value="${v==null?'':esc(v)}" aria-label="${lbl}">${unit?`<span>${unit}</span>`:''}</label>`;
+  return `<div class="sh-head"><h2>${st.id?'แก้ไขเมนู':'เมนูใหม่'}</h2><button type="button" class="x" data-act="sheetclose" aria-label="ปิด">×</button></div>
+  <p class="note">ใส่ค่าต่อ 1 หน่วย (เช่น ต่อ 1 ชิ้น 1 จาน หรือ 100 g) แล้วตอนกินค่อยเลือกจำนวน ถ้าไม่ใส่ kcal แอปจะคำนวณจากโปรตีน คาร์บ ไขมันให้</p>
+  <div class="form">${f('pn','ชื่อเมนู เช่น ข้าวกล่อง 7-11',x.name,'ชื่อเมนู')}
+    ${f('pp','0',x.p,'โปรตีน กรัม','g โปรตีน','decimal')}${f('pk','0',x.k,'พลังงาน kcal','kcal','numeric')}
+    ${f('pc','0',x.c,'คาร์บ กรัม','g คาร์บ','decimal')}${f('pf','0',x.f,'ไขมัน กรัม','g ไขมัน','decimal')}
+    <button type="button" class="btn full" data-act="psave">${st.id?'บันทึก':'เพิ่มเมนู'}</button></div>
+  ${!st.id&&(S.profile.hiddenPresets||[]).length?`<p class="note" style="margin-top:12px">มีเมนูที่ซ่อนไว้ ${S.profile.hiddenPresets.length} รายการ <button type="button" class="link" data-act="punhide">แสดงทั้งหมดอีกครั้ง</button></p>`:''}`}
+function renderGuide(){
+  const li=x=>`<li><span>${esc(x.name)}<br><small class="muted">${macroLine(x)}</small></span><button type="button" class="chip" data-act="gpick" data-n="${esc(x.name)}" data-p="${x.p}" data-k="${x.k}" data-c="${x.c}" data-f="${x.f}">เพิ่ม</button></li>`;
+  return `<div class="sh-head"><h2>กะสารอาหารคร่าวๆ</h2><button type="button" class="x" data-act="sheetclose" aria-label="ปิด">×</button></div>
+  <p class="note">ทุกตัวเลขในนี้เป็นค่าประมาณ ร้านแต่ละร้านต่างกันได้ ±30% เป้าหมายไม่ใช่ความแม่นระดับกรัม แค่ให้ค่าเฉลี่ยทั้งวันใกล้เคียง (คลาดเคลื่อน ±100 kcal ต่อวันถือว่าดีมากแล้ว) แล้วดูน้ำหนักตัวกับรอบเอวทุกสัปดาห์เป็นตัวตัดสิน</p>
+  <section class="gsec"><h3>1. ไม่มีฉลาก ใช้มือวัด</h3><ul class="prog">
+    <li><span>เนื้อสัตว์สุก 1 ฝ่ามือ (ไม่รวมนิ้ว หนาเท่าฝ่ามือ) ≈ 100 g</span><b>โปรตีน 25–30 g</b></li>
+    <li><span>ข้าว เส้น แป้ง 1 อุ้งมือ (กอบมือเดียว) ≈ 1 ทัพพี</span><b>คาร์บ 15–20 g · 80 kcal</b></li>
+    <li><span>ไขมัน 1 นิ้วโป้ง (เนย น้ำมัน ถั่ว) ≈ 1 ช้อนโต๊ะ</span><b>ไขมัน 10–14 g · 100–120 kcal</b></li>
+    <li><span>ผัก 1 กำปั้น</span><b>~25 kcal แทบไม่ต้องนับ</b></li>
+    <li><span>ไข่ 1 ฟอง</span><b>โปรตีน 6 g · 75 kcal</b></li></ul>
+    <p class="muted" style="font-size:14px;margin:8px 0 0">วิธีคิด: นับฝ่ามือ อุ้งมือ นิ้วโป้งในจาน แล้วคูณค่าข้างบน เช่น ข้าวมันไก่ = ไก่ 1 ฝ่ามือ (28 g โปรตีน) + ข้าว 3 อุ้งมือ (55 g คาร์บ) + น้ำมันในข้าว 2 นิ้วโป้ง (25 g ไขมัน) ≈ 650 kcal</p></section>
+  <section class="gsec"><h3>2. กฎนิ้วโป้งเวลากินข้างนอก</h3><ul class="prog">
+    <li><span>ข้าวจานเดียวร้านตามสั่ง</span><b>500–700 kcal · โปรตีน 20–30 g</b></li>
+    <li><span>เส้นชามเดียว (น้ำ)</span><b>350–450 kcal · โปรตีน 15–20 g</b></li>
+    <li><span>ขอข้าวน้อย / ข้าวเพิ่ม</span><b>−80 / +100 kcal</b></li>
+    <li><span>ไข่ดาวเพิ่ม 1 ฟอง</span><b>+120 kcal · +6 g โปรตีน</b></li>
+    <li><span>ของทอดและผัด เทียบกับต้ม นึ่ง ย่าง</span><b>×1.5 เท่า</b></li>
+    <li><span>น้ำมันในจานผัดร้านทั่วไป</span><b>1–2 ช้อนโต๊ะ = 120–240 kcal</b></li>
+    <li><span>น้ำหวาน ชาเย็น กาแฟเย็น 1 แก้ว</span><b>150–400 kcal · โปรตีน ≈ 0</b></li>
+    <li><span>ฉลาก 7-11 / ซอง</span><b>ดู "ต่อ 1 หน่วยบริโภค" คูณ "จำนวนหน่วยบริโภคต่อซอง"</b></li></ul>
+    <p class="muted" style="font-size:14px;margin:8px 0 0">ถ้าไม่แน่ใจ: ช่วงลดไขมัน ปัดแคลอรี่ขึ้นและปัดโปรตีนลง ช่วงเพิ่มกล้ามทำกลับกัน จะไม่หลอกตัวเอง</p></section>
+  <section class="gsec"><h3>3. เมนูยอดฮิต (กดเพิ่มได้เลย เลือกจำนวนได้)</h3>
+    ${GUIDE.map(g=>`<p class="gh">${esc(g.h)}</p><ul class="items gd">${g.items.map(li).join('')}</ul>`).join('')}</section>`}
+
 /* ---------- events ---------- */
 function onField(e){
   const t=e.target;
+  if(t.id==='qin'&&S.sheet&&S.sheet.type==='qty'){S.sheet.q=Math.max(0,num(t.value)||0);const el=$('#qtot');if(el)el.innerHTML=qtyLine(S.sheet);return}
   if(t.id==='plw'&&S.sheet&&S.sheet.type==='plate'){S.sheet.w=num(t.value);const el=$('#plres');if(el)el.innerHTML=plateResult(S.sheet);return}
   if(t.id==='sbar'){S.profile.barKg=num(t.value);save('p','me');return}
   if(t.id==='swarm'){S.profile.warmups=t.checked;save('p','me');return}
@@ -926,7 +1004,27 @@ document.addEventListener('click',async e=>{
   if(a==='fadd'){const name=$('#fn').value.trim(),p=num($('#fp').value)||0,c=num($('#fc').value),f=num($('#ff').value);let k=num($('#fk').value)||0;
     if(!k&&(p||c||f))k=Math.round(p*4+(c||0)*4+(f||0)*9);
     if(!p&&!k){toast('ใส่พลังงานหรือสารอาหารอย่างน้อยหนึ่งช่อง');$('#fk').focus();return}addItem(name||'อาหาร',p,k,c,f);toast('เพิ่มแล้ว');return}
-  if(a==='preset'){const x=PRESETS[+b.dataset.i];addItem(x.name,x.p,x.k,x.c,x.f);toast(`เพิ่ม ${x.name} แล้ว`);return}
+  if(a==='preset'){const x=allPresets()[+b.dataset.i];if(x)openQty(x);return}
+  if(a==='gpick'){const d=b.dataset;openQty({src:'g',name:d.n,p:num(d.p),k:num(d.k),c:num(d.c),f:num(d.f)});return}
+  if(a==='q-'||a==='q+'||a==='qset'){const st=S.sheet;if(!st||st.type!=='qty')return;
+    st.q=a==='qset'?num(b.dataset.q):a==='q+'?(st.q<1?1:st.q+1):(st.q>1?st.q-1:0.5);openSheet(renderQty());return}
+  if(a==='qadd'){const st=S.sheet;if(!st||st.type!=='qty')return;const q=st.q||0;if(!q){toast('ใส่จำนวนก่อน');return}
+    const t=qtyTotals(st),nm=q===1?st.item.name:`${st.item.name} ×${fmt(q)}`;closeSheet();addItem(nm,t.p,t.k,t.c,t.f);toast(`เพิ่ม ${nm} แล้ว`);return}
+  if(a==='pnew'){const v=id=>{const el=$(id);return el?el.value:''};
+    S.sheet={type:'pedit',id:null,item:{name:v('#fn').trim(),p:num(v('#fp')),k:num(v('#fk')),c:num(v('#fc')),f:num(v('#ff'))}};openSheet(renderPresetEdit());return}
+  if(a==='pedit'){const x=customPresets().find(p=>p.id===b.dataset.id);if(!x)return;S.sheet={type:'pedit',id:x.id,item:clone(x)};openSheet(renderPresetEdit());return}
+  if(a==='psavefrom'){const st=S.sheet;if(!st||st.type!=='qty')return;const x=Object.assign({id:uid('m')},st.item);delete x.src;
+    if(!Array.isArray(S.profile.presets))S.profile.presets=[];S.profile.presets.push(x);save('p','me');closeSheet();render();toast(`บันทึก ${x.name} เป็นเมนูกดเพิ่มเร็วแล้ว`);return}
+  if(a==='psave'){const st=S.sheet;if(!st||st.type!=='pedit')return;const name=$('#pn').value.trim(),p=num($('#pp').value)||0,c=num($('#pc').value),f=num($('#pf').value);let k=num($('#pk').value)||0;
+    if(!k&&(p||c||f))k=Math.round(p*4+(c||0)*4+(f||0)*9);
+    if(!name){toast('ใส่ชื่อเมนูก่อน');$('#pn').focus();return}if(!p&&!k){toast('ใส่พลังงานหรือสารอาหารอย่างน้อยหนึ่งช่อง');$('#pk').focus();return}
+    if(!Array.isArray(S.profile.presets))S.profile.presets=[];
+    if(st.id){const x=S.profile.presets.find(p=>p.id===st.id);if(x)Object.assign(x,{name,p,k,c,f})}else S.profile.presets.push({id:uid('m'),name,p,k,c,f});
+    save('p','me');closeSheet();render();toast(st.id?'บันทึกเมนูแล้ว':`เพิ่มเมนู ${name} แล้ว`);return}
+  if(a==='pdel'){if(!confirm('ลบเมนูนี้ออกจากกดเพิ่มเร็วไหม (รายการที่กินไปแล้วยังอยู่)'))return;S.profile.presets=customPresets().filter(p=>p.id!==b.dataset.id);save('p','me');closeSheet();render();toast('ลบเมนูแล้ว');return}
+  if(a==='phide'){const st=S.sheet;if(!st||st.type!=='qty')return;if(!Array.isArray(S.profile.hiddenPresets))S.profile.hiddenPresets=[];S.profile.hiddenPresets.push(st.item.name);save('p','me');closeSheet();render();toast('ซ่อนแล้ว กด + เมนูใหม่ เพื่อแสดงอีกครั้ง');return}
+  if(a==='punhide'){S.profile.hiddenPresets=[];save('p','me');closeSheet();render();toast('แสดงเมนูทั้งหมดแล้ว');return}
+  if(a==='guide'){S.sheet={type:'guide'};openSheet(renderGuide());return}
   if(a==='fdel'){const d=fday();d.items=d.items.filter(i=>i.id!==b.dataset.id);save('f',fk);render();return}
   if(a==='w+'||a==='w-'){const d=fday();d.water=Math.max(0,(d.water||0)+(a==='w+'?1:-1));save('f',fk);render();return}
   if(a==='fprev'){S.foodDate=keyOf(addDays(fromKey(fk),-1));render();return}
